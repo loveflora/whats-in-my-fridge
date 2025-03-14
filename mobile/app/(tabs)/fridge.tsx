@@ -249,7 +249,7 @@ console.log("items>>>>>>>", items)
           style={styles.addListButton}
           onPress={() => {
             console.log('Add button pressed');
-            router.push('/modal/AddItem');
+            router.push('/modal/addItem');
           }}
         >
           <Ionicons name="add-circle" size={24} color={isDarkMode ? '#fff' : '#3478F6'} />

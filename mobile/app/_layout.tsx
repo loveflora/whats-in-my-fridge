@@ -4,7 +4,7 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
@@ -40,6 +40,19 @@ function RootLayoutNav() {
     }
   }, [loaded]);
 
+  const pathname = usePathname();
+  
+  useEffect(() => {
+    console.log("Current path:", pathname);
+
+    if (isAuthenticated === false) {
+      // ✅ useEffect 안에서 setTimeout 사용하여 Root Layout이 마운트된 후 실행
+      setTimeout(() => {
+        router.replace("/auth/login");
+      }, 0);
+    }
+  }, [isAuthenticated, pathname]);
+
   const checkAuthStatus = async () => {
     try {
       const token = await AsyncStorage.getItem("userToken");
@@ -54,36 +67,27 @@ function RootLayoutNav() {
     return null;
   }
 
+  // 로그인이 필요하면 로그인 화면으로 리디렉션
+  // if (!isAuthenticated) {
+  //   return <Redirect href="/auth/login" />;
+  // }
+
   return (
     <ThemeProvider value={actualTheme === "dark" ? DarkTheme : DefaultTheme}>
       <StatusBar style={actualTheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          // Auth screens
-          <>
-            <Stack.Screen name="auth/login" options={{ title: "Login" }} />
-            <Stack.Screen
-              name="auth/register"
-              options={{ title: "Register" }}
-            />
-          </>
-        ) : (
-          // Main app screens
-          <>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation: "modal",
-                headerShown: false,
-                animation: "slide_from_bottom",
-              }}
-            />
-            <Stack.Screen name="addMenu" options={{ headerShown: false }} />
-            <Stack.Screen name="addItem" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </>
-        )}
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );

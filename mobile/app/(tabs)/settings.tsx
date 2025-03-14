@@ -126,6 +126,9 @@ export default function ProfileScreen() {
         return;
       }
 
+      console.log('초대 요청 시작:', friendEmail);
+      console.log('API URL:', `${API_URL}/api/friends/invite`);
+      
       const response = await fetch(`${API_URL}/api/friends/invite`, {
         method: 'POST',
         headers: {
@@ -135,8 +138,22 @@ export default function ProfileScreen() {
         body: JSON.stringify({ email: friendEmail }),
       });
 
+      console.log('API 응답 상태 코드:', response.status);
+      
+      // 응답이 JSON 형식인지 확인
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // JSON이 아닌 경우 텍스트로 응답 처리
+        const textResponse = await response.text();
+        console.log('Non-JSON response:', textResponse);
+        throw new Error(`Server returned non-JSON response: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      console.log('API 응답 데이터:', responseData);
+
       if (!response.ok) {
-        throw new Error('Failed to send invitation');
+        throw new Error(responseData.message || 'Failed to send invitation');
       }
 
       Alert.alert(
@@ -145,9 +162,9 @@ export default function ProfileScreen() {
         [{ text: 'OK', onPress: () => setInviteModalVisible(false) }]
       );
       setFriendEmail('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error inviting friend:', error);
-      Alert.alert('Error', 'Failed to send invitation. Please try again later.');
+      Alert.alert('Error', `Failed to send invitation. Error: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

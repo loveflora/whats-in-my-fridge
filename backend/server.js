@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const fridgeRoutes = require('./routes/fridge');
 const shoppingListRoutes = require('./routes/shoppingList');
 const menuRoutes = require('./routes/menu');
+const friendsRoutes = require('./routes/friends');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/fridge', fridgeRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
 app.use('/api/menu', menuRoutes);
+app.use('/api/friends', friendsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

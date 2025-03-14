@@ -174,7 +174,7 @@ export default function MenuScreen() {
   
   // 메뉴 추가하기 화면으로 이동
   const handleAddMenu = () => {
-    router.push('/add-menu');
+    router.push('/modal/addMenu');
   };
 
   if (loading) {
@@ -214,7 +214,12 @@ export default function MenuScreen() {
             }}
           />
         </View>
-        
+      
+        {/* 메뉴 추가 플로팅 버튼 */}
+      <TouchableOpacity style={styles.addButton} onPress={handleAddMenu}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
         <View style={styles.menuListContainer}>
           <Text style={[styles.dateTitle, isDarkMode && styles.darkText]}>{formatDate(selectedDate)}</Text>
           {menusByDate[selectedDate] && menusByDate[selectedDate].length > 0 ? (
@@ -227,12 +232,14 @@ export default function MenuScreen() {
                   {menu.description && (
                     <Text style={[styles.menuDescription, isDarkMode && styles.darkText]}>{menu.description}</Text>
                   )}
-                  {menu.ingredients && menu.ingredients.length > 0 && (
+
+                  {/* {menu.ingredients && menu.ingredients.length > 0 && (
                     <Text style={[styles.menuIngredients, isDarkMode && styles.darkSubText]}>
                       <Text style={[styles.ingredientsLabel, isDarkMode && styles.darkText]}>재료: </Text>
                       {menu.ingredients.join(', ')}
                     </Text>
-                  )}
+                  )} */}
+                
                 </View>
               </View>
             ))
@@ -246,10 +253,7 @@ export default function MenuScreen() {
         </View>
       </ScrollView>
       
-      {/* 메뉴 추가 플로팅 버튼 */}
-      <TouchableOpacity style={styles.addButton} onPress={handleAddMenu}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+     
     </View>
   );
 }
