@@ -11,6 +11,8 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -258,6 +260,14 @@ export default function ItemDetailsScreen() {
             <Ionicons name="arrow-back" size={24} color={isDarkMode ? "#fff" : "#000"} />
           </TouchableOpacity>
           <Text style={[styles.title, isDarkMode && styles.darkText]}>{item.name}</Text>
+          <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.headerButton} onPress={handleEdit}>
+            <Ionicons name="create-outline" size={24} color={isDarkMode ? '#fff' : '#333'} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton} onPress={confirmDelete}>
+            <Ionicons name="trash-outline" size={24} color={isDarkMode ? '#fff' : '#333'} />
+          </TouchableOpacity>
+        </View>
         </View>
 
         <View style={styles.content}>
@@ -289,7 +299,7 @@ export default function ItemDetailsScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.buttonContainer}>
+      {/* <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.editButton]}
           onPress={handleEdit}
@@ -304,7 +314,7 @@ export default function ItemDetailsScreen() {
           <Ionicons name="trash-outline" size={20} color="#fff" />
           <Text style={styles.buttonText}>삭제</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* 아이템 수정 모달 */}
       <Modal
@@ -429,17 +439,32 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60,
-    padding: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    paddingTop: 60,
+    position: 'relative',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+  },
+  headerButton: {
+    padding: 4,
+    marginLeft: 16,
   },
   backIcon: {
     marginRight: 16,
+    zIndex: 1
   },
   title: {
     textAlign: "center",
-    width: "80%",
+    position: 'absolute', // 제목을 가운데에 위치시키기 위한 절대 위치
+    left: 0,
+    right: 0,
+    bottom: 16,
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',

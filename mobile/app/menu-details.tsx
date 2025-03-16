@@ -7,11 +7,17 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '@/context/AppContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const API_URL = 'http://192.168.20.8:5001';
 
@@ -43,6 +49,9 @@ export default function MenuDetailsScreen() {
 
   const [menu, setMenu] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editedMenu, setEditedMenu] = useState<Partial<MenuItem>>({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     fetchMenuDetails();
@@ -117,6 +126,119 @@ export default function MenuDetailsScreen() {
     return date.toLocaleDateString('ko-KR', options);
   };
 
+  // 수정 모달 열기
+  const openEditModal = () => {
+    setEditedMenu({
+      name: menu?.name,
+      description: menu?.description,
+      category: menu?.category,
+      type: menu?.type,
+      mealType: menu?.mealType,
+      date: menu?.date,
+    });
+    setEditModalVisible(true);
+  };
+
+  // 수정 저장
+  const saveMenuChanges = async () => {
+    try {
+      if (!editedMenu.name) {
+        Alert.alert('알림', '메뉴 이름은 필수입니다.');
+        return;
+      }
+
+      setLoading(true);
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/menu/${id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editedMenu)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API 오류 응답:', errorText);
+        throw new Error('Failed to update menu');
+      }
+
+      const updatedMenu = await response.json();
+      setMenu(updatedMenu);
+      setEditModalVisible(false);
+      Alert.alert('알림', '메뉴가 성공적으로 수정되었습니다.');
+    } catch (error) {
+      console.error('Error updating menu:', error);
+      Alert.alert('오류', '메뉴 수정에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 메뉴 삭제
+  const deleteMenu = async () => {
+    Alert.alert(
+      '메뉴 삭제',
+      '정말로 이 메뉴를 삭제하시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel'
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const token = await AsyncStorage.getItem('userToken');
+              if (!token) {
+                router.replace('/auth/login');
+                return;
+              }
+
+              const response = await fetch(`${API_URL}/api/menu/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+              });
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API 오류 응답:', errorText);
+                throw new Error('Failed to delete menu');
+              }
+
+              Alert.alert('알림', '메뉴가 성공적으로 삭제되었습니다.', [
+                { text: '확인', onPress: () => router.back() }
+              ]);
+            } catch (error) {
+              console.error('Error deleting menu:', error);
+              Alert.alert('오류', '메뉴 삭제에 실패했습니다.');
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // 날짜 변경 처리
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setEditedMenu({ ...editedMenu, date: selectedDate.toISOString() });
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, isDarkMode && styles.darkContainer]}>
@@ -145,12 +267,19 @@ export default function MenuDetailsScreen() {
 
   return (
     <View style={[styles.container, isDarkMode && styles.darkContainer]}>
-      <View style={styles.header}>
+      <View style={[styles.header, isDarkMode && styles.darkHeader]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#fff' : '#333'} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isDarkMode && styles.darkText]}>메뉴 상세</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.headerButton} onPress={openEditModal}>
+            <Ionicons name="create-outline" size={24} color={isDarkMode ? '#fff' : '#333'} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerButton} onPress={deleteMenu}>
+            <Ionicons name="trash-outline" size={24} color={isDarkMode ? '#fff' : '#333'} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -216,6 +345,116 @@ export default function MenuDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* 수정 모달 */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+          {/* 터치하면 키보드가 닫히도록 설정 */}
+  <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={styles.centeredView}>
+          <View style={[styles.modalView, isDarkMode && styles.darkModalView]}>
+            <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>메뉴 수정</Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, isDarkMode && styles.darkText]}>메뉴 이름</Text>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                value={editedMenu.name}
+                onChangeText={(text) => setEditedMenu({ ...editedMenu, name: text })}
+                placeholder="메뉴 이름"
+                placeholderTextColor={isDarkMode ? '#777' : '#999'}
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, isDarkMode && styles.darkText]}>설명</Text>
+              <TextInput
+                style={[styles.textArea, isDarkMode && styles.darkInput]}
+                value={editedMenu.description}
+                onChangeText={(text) => setEditedMenu({ ...editedMenu, description: text })}
+                placeholder="메뉴 설명"
+                placeholderTextColor={isDarkMode ? '#777' : '#999'}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, isDarkMode && styles.darkText]}>카테고리</Text>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                value={editedMenu.category}
+                onChangeText={(text) => setEditedMenu({ ...editedMenu, category: text })}
+                placeholder="카테고리 (breakfast, lunch, dinner 등)"
+                placeholderTextColor={isDarkMode ? '#777' : '#999'}
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, isDarkMode && styles.darkText]}>타입</Text>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                value={editedMenu.type}
+                onChangeText={(text) => setEditedMenu({ ...editedMenu, type: text })}
+                placeholder="타입 (한식, 양식 등)"
+                placeholderTextColor={isDarkMode ? '#777' : '#999'}
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, isDarkMode && styles.darkText]}>식사 타입</Text>
+              <TextInput
+                style={[styles.input, isDarkMode && styles.darkInput]}
+                value={editedMenu.mealType}
+                onChangeText={(text) => setEditedMenu({ ...editedMenu, mealType: text })}
+                placeholder="식사 타입 (아침, 점심, 저녁 등)"
+                placeholderTextColor={isDarkMode ? '#777' : '#999'}
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, isDarkMode && styles.darkText]}>날짜</Text>
+              <TouchableOpacity
+                style={[styles.dateInput, isDarkMode && styles.darkInput]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={[styles.dateInputText, isDarkMode && styles.darkText]}>
+                  {editedMenu.date ? formatDate(editedMenu.date) : '날짜 선택'}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={editedMenu.date ? new Date(editedMenu.date) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                  themeVariant={isDarkMode ? 'dark' : 'light'}
+                />
+              )}
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonCancel]}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSave]}
+                onPress={saveMenuChanges}
+              >
+                <Text style={styles.buttonText}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -255,17 +494,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     paddingTop: 60,
+    position: 'relative',
   },
   darkHeader: {
     backgroundColor: '#1c1c1c',
     borderBottomColor: '#333',
   },
+  headerButtons: {
+    flexDirection: 'row',
+  },
+  headerButton: {
+    padding: 4,
+    marginLeft: 16,
+  },
   backButton: {
     padding: 4,
+    zIndex: 1
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    position: 'absolute', // 제목을 가운데에 위치시키기 위한 절대 위치
+    left: 0,
+    right: 0,
+    bottom: 16,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -356,5 +609,102 @@ const styles = StyleSheet.create({
   ingredientQuantity: {
     fontSize: 14,
     color: '#666',
+  },
+  
+  // 모달 스타일
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalView: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  darkModalView: {
+    backgroundColor: '#242424',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  input: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  darkInput: {
+    backgroundColor: '#333',
+    borderColor: '#555',
+    color: '#e0e0e0',
+  },
+  textArea: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  dateInput: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  dateInputText: {
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  button: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  buttonCancel: {
+    backgroundColor: '#aaa',
+  },
+  buttonSave: {
+    backgroundColor: '#3478F6',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
