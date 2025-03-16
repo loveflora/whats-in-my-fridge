@@ -2,30 +2,15 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const ShoppingList = require('../models/ShoppingList');
-
-// Middleware to verify token
-const auth = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
-  }
-};
+const auth = require('../middleware/auth'); // 글로벌 auth 미들웨어 사용
 
 // Get all shopping lists
 router.get('/lists', auth, async (req, res) => {
   try {
     const lists = await ShoppingList.find({
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
     res.json(lists);
@@ -41,8 +26,8 @@ router.get('/lists/:id', auth, async (req, res) => {
     const list = await ShoppingList.findOne({
       _id: req.params.id,
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
     
@@ -64,7 +49,7 @@ router.post('/lists', auth, async (req, res) => {
     
     const newList = new ShoppingList({
       name,
-      owner: req.userId,
+      owner: req.user.id,
       items: []
     });
 
@@ -85,8 +70,8 @@ router.put('/lists/:id', auth, async (req, res) => {
       {
         _id: req.params.id,
         $or: [
-          { owner: req.userId },
-          { sharedWith: req.userId }
+          { owner: req.user.id },
+          { sharedWith: req.user.id }
         ]
       },
       { name },
@@ -109,7 +94,7 @@ router.delete('/lists/:id', auth, async (req, res) => {
   try {
     const list = await ShoppingList.findOneAndDelete({
       _id: req.params.id,
-      owner: req.userId // Only owner can delete
+      owner: req.user.id // Only owner can delete
     });
     
     if (!list) {
@@ -135,8 +120,8 @@ router.get('/items', auth, async (req, res) => {
     const list = await ShoppingList.findOne({
       _id: listId,
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
     
@@ -174,8 +159,8 @@ router.post('/items', auth, async (req, res) => {
     const list = await ShoppingList.findOne({
       _id: listId,
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
 
@@ -222,8 +207,8 @@ router.put('/items/:id', auth, async (req, res) => {
     const list = await ShoppingList.findOne({
       'items._id': req.params.id,
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
 
@@ -270,8 +255,8 @@ router.delete('/items/:id', auth, async (req, res) => {
     const list = await ShoppingList.findOne({
       'items._id': req.params.id,
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
 
@@ -295,7 +280,7 @@ router.post('/lists/:id/share', auth, async (req, res) => {
   try {
     const list = await ShoppingList.findOne({
       _id: req.params.id,
-      owner: req.userId
+      owner: req.user.id
     });
 
     if (!list) {

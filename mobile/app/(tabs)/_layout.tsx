@@ -7,6 +7,7 @@ import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { CustomHeader } from '@/components/CustomHeader';
 
 interface TabBarIconProps {
   focused: boolean;
@@ -42,37 +43,20 @@ function CustomTabBarBackground() {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-//   const pathname = usePathname();
-
-//   console.log(">>>>>>>", pathname)
-
-
-
-//      // // 유효하지 않은 경로 처리
-//  useEffect(() => {
-//   //   // 유효한 탭 경로 목록
-//   //   const validTabPaths = ['/(tabs)/fridge', '/(tabs)/shopping', '/(tabs)/menu', '/(tabs)/settings'];
-    
-//   //   // 현재 경로가 유효한지 확인
-//   //   const isValidPath = pathname && validTabPaths.some(path => pathname.startsWith(path));
-    
-//   //   // 유효하지 않은 경로면 fridge로 리디렉션
-//     // if (pathname && !isValidPath ) {
-
-//     const timeout = setTimeout(() => {
-//     if (pathname === "/" ) {
-//       console.log('유효하지 않은 경로 감지:', pathname);
-//       router.replace('/fridge');
-//     }
-//   }, 100); // 100ms 대기 후 실행
-//   }, [pathname, router]);
-
   return (
     <Tabs
-      screenOptions={{
+      screenOptions={({ navigation, route }) => ({
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         tabBarInactiveTintColor: 'gray',
-        headerShown: true,
+        // 헤더 커스텀
+        header: () => {
+          let title = '냉장고';
+          if (route.name === 'shopping') title = '장보기';
+          else if (route.name === 'menu') title = '메뉴';
+          else if (route.name === 'settings') title = '설정';
+          
+          return <CustomHeader title={title} navigation={navigation} />;
+        },
         tabBarBackground: () => <CustomTabBarBackground />,
         tabBarStyle: Platform.select({
           ios: {
@@ -95,7 +79,7 @@ export default function TabLayout() {
             ]}
           />
         ),
-      }}>
+      })}>
       <Tabs.Screen
         name="fridge"
         options={{

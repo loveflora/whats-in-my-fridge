@@ -22,7 +22,6 @@ const API_URL = 'http://192.168.20.8:5001';
 interface UserProfile {
   name: string;
   email: string;
-  phoneNumber: string;
 }
 
 export default function ProfileScreen() {
@@ -42,12 +41,10 @@ export default function ProfileScreen() {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: '',
     email: '',
-    phoneNumber: '',
   });
   const [editedProfile, setEditedProfile] = useState<UserProfile>({
     name: '',
     email: '',
-    phoneNumber: '',
   });
   
   // 알림 설정
@@ -77,22 +74,80 @@ export default function ProfileScreen() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // 데모용 로컬 데이터
-        const userData = {
-          name: '사용자',
-          email: 'user@example.com',
-          phoneNumber: '010-1234-5678',
-        };
+        const token = await AsyncStorage.getItem("userToken");
+        if (!token) {
+          setDefaultUserData();
+          return;
+        }
         
-        setUserProfile(userData);
-        setEditedProfile(userData);
+        try {
+          // 프로필 정보 가져오기 API 호출
+          const response = await fetch(`${API_URL}/api/auth/user`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            setDefaultUserData();
+            return;
+          }
+          
+          // 응답 텍스트 가져오기
+          const responseText = await response.text();
+
+          try {
+            // JSON 파싱
+            const userData = JSON.parse(responseText);
+            
+            // 프로필 정보 가져오기 성공
+            if (userData.name && userData.email) {
+              console.log("프로필 정보 가져오기:", {
+                name: userData.name,
+                email: userData.email
+              });
+              
+              setUserProfile({
+                name: userData.name,
+                email: userData.email,
+              });
+              
+              setEditedProfile({
+                name: userData.name,
+                email: userData.email,
+              });
+            } else {
+              // 기본 프로필 정보 설정
+              setDefaultUserData();
+            }
+          } catch (parseError) {
+            console.error("프로필 정보 가져오기 JSON 파싱 오류:", parseError);
+            setDefaultUserData();
+          }
+        } catch (fetchError) {
+          console.error("API 호출 오류:", fetchError);
+          setDefaultUserData();
+        }
       } catch (error) {
-        console.error('프로필 정보를 가져오는 중 오류 발생:', error);
+        console.error('프로필 정보 가져오는 중 오류 발생:', error);
+        setDefaultUserData();
       }
     };
     
     fetchUserProfile();
   }, []);
+  
+  // 기본 프로필 정보 설정
+  const setDefaultUserData = () => {
+    const defaultData = {
+      name: '사용자',
+      email: 'user@example.com',
+    };
+    
+    setUserProfile(defaultData);
+    setEditedProfile(defaultData);
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -182,24 +237,103 @@ export default function ProfileScreen() {
   };
   
   // 프로필 업데이트 처리
-  const handleUpdateProfile = async () => {
+  const updateProfile = async () => {
     setIsLoading(true);
     try {
-      // 여기에 실제 API 요청 코드 추가
-      // const token = await AsyncStorage.getItem('userToken');
-      // const response = await fetch(...);
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        Alert.alert("uc624ub958", "ub85cuadf8uc778 uc815ubcf4uac00 uc5c6uc2b5ub2c8ub2e4.");
+        setIsLoading(false);
+        return;
+      }
       
-      // 데모용으로는 로컬 상태만 업데이트
-      setUserProfile(editedProfile);
-      
-      Alert.alert('Success', 'Profile updated successfully');
-      setProfileModalVisible(false);
+      try {
+        // ud504ub85cud544 uc5c5ub370uc774ud2b8 API ud638ucd9c
+        console.log("ud504ub85cud544 uc5c5ub370uc774ud2b8 uc2dcub3c4...");
+        console.log("uc5c5ub370uc774ud2b8 ub370uc774ud130:", { name: editedProfile.name });
+        
+        const response = await fetch(`${API_URL}/api/auth/update-profile`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: editedProfile.name
+          })
+        });
+        
+        // uc751ub2f5 ud14duc2a4ud2b8 uac00uc838uc624uae30
+        const responseText = await response.text();
+        console.log("API uc751ub2f5 uc0c1ud0dc:", response.status);
+        
+        // HTTP uc0c1ud0dc ucf54ub4dc ud655uc778
+        if (response.ok) {
+          try {
+            // JSON ud30cuc2f1 uc2dcub3c4 (uc751ub2f5uc774 JSON uc778 uacbd uc6b0uc5d0ub9cc)
+            if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+              const data = JSON.parse(responseText);
+              console.log("ud504ub85cud544 uc5c5ub370uc774ud2b8 uc131uacf5:", data);
+            }
+          } catch (parseError) {
+            // JSON ud30cuc2f1 uc2e4ud328ub294 ubb34uc2dcud574ub3c4 ub428
+            console.log("JSON ud30cuc2f1 uc2e4ud328, ud558uc9c0ub9cc uc694uccad uc131uacf5:", parseError);
+          }
+          
+          // uc131uacf5uc801uc73cub85c uc5c5ub370uc774ud2b8ub418uba74 uc0c1ud0dc uc5c5ub370uc774ud2b8
+          setUserProfile({
+            ...userProfile,
+            name: editedProfile.name
+          });
+          
+          Alert.alert("uc131uacf5", "ud504ub85cud544 uc815ubcf4uac00 uc5c5ub370uc774ud2b8 ub418uc5c8uc2b5ub2c8ub2e4.");
+          setProfileModalVisible(false);
+        } else {
+          console.log("API uc624ub958, uc0c1ud0dc ucf54ub4dc:", response.status);
+          
+          // API uc624ub958uc9c0ub9cc ub85cuce7c uc5c5ub370uc774ud2b8 uc218ud589
+          setUserProfile({
+            ...userProfile,
+            name: editedProfile.name
+          });
+          
+          Alert.alert(
+            "uc8fcuc758", 
+            "uc11cbc ubb34uc751ub2f5 ub610ub294 uc624ub958uac00 ubc1cuc0ddud588uc9c0ub9cc, ud504ub85cud544uc774 ub85cuce7cuc5d0 uc5c5ub370uc774ud2b8ub418uc5c8uc2b5ub2c8ub2e4.",
+            [{ text: "ud655uc778", onPress: () => setProfileModalVisible(false) }]
+          );
+        }
+      } catch (fetchError) {
+        console.error("ud504ub85cud544 uc5c5ub370uc774ud2b8 API ud638ucd9c uc624ub958:", fetchError);
+        
+        // uc624ub958 ubc1cuc0dd uc2dc ub85cuce7cuc5d0uc11cub9cc uc5c5ub370uc774ud2b8
+        setUserProfile({
+          ...userProfile,
+          name: editedProfile.name
+        });
+        
+        Alert.alert(
+          "uc5f0uacb0 uc624ub958", 
+          "uc11cbc uc5f0uacb0 uc911 uc624ub958uac00 ubc1cuc0ddud588uc9c0ub9cc, ud504ub85cud544uc774 ub85cuce7cuc5d0 uc5c5ub370uc774ud2b8ub418uc5c8uc2b5ub2c8ub2e4.",
+          [{ text: "ud655uc778", onPress: () => setProfileModalVisible(false) }]
+        );
+      }
     } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
+      console.error("ud1a0ud070 uc5d0ub7ec:", error);
+      Alert.alert("uc624ub958", "uc54cuac8c ub41c uc624ub958uac00 ubc1cuc0ddud588uc2b5ub2c8ub2e4.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUpdateProfile = () => {
+    // 이메일 정보는 변경하지 않음
+    setEditedProfile(prev => ({
+      ...prev,
+      email: userProfile.email
+    }));
+    
+    updateProfile();
   };
   
   // 알림 설정 저장
@@ -429,14 +563,16 @@ export default function ProfileScreen() {
             <Text style={[
               styles.label,
               darkMode && styles.darkText
-            ]}>Name</Text>
+            ]}>
+              Name
+            </Text>
             <TextInput
               style={[
                 styles.input,
                 darkMode && styles.darkInput
               ]}
-              placeholder="Your Name"
-              placeholderTextColor={darkMode ? "#888" : "#999"}
+              placeholder="Your name"
+              placeholderTextColor={darkMode ? "#aaa" : "#999"}
               value={editedProfile.name}
               onChangeText={(text) => setEditedProfile({...editedProfile, name: text})}
             />
@@ -444,21 +580,21 @@ export default function ProfileScreen() {
             <Text style={[
               styles.label,
               darkMode && styles.darkText
-            ]}>Email</Text>
+            ]}>
+              Email (읽기 전용)
+            </Text>
             <TextInput
               style={[
                 styles.input,
-                darkMode && styles.darkInput
+                darkMode && styles.darkInput,
+                { backgroundColor: darkMode ? '#444' : '#f0f0f0' } // 읽기 전용 배경색 변경
               ]}
-              placeholder="Your Email"
-              placeholderTextColor={darkMode ? "#888" : "#999"}
               value={editedProfile.email}
-              onChangeText={(text) => setEditedProfile({...editedProfile, email: text})}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              editable={false} // 수정 불가능하게 설정
+              selectTextOnFocus={false} // 텍스트 선택 비활성화
             />
             
-            <Text style={[
+            {/* <Text style={[
               styles.label,
               darkMode && styles.darkText
             ]}>Phone Number</Text>
@@ -472,7 +608,7 @@ export default function ProfileScreen() {
               value={editedProfile.phoneNumber}
               onChangeText={(text) => setEditedProfile({...editedProfile, phoneNumber: text})}
               keyboardType="phone-pad"
-            />
+            /> */}
 
             <TouchableOpacity
               style={styles.button}

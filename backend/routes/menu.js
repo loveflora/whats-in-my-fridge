@@ -1,23 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const Menu = require('../models/Menu');
-
-// Middleware to verify token
-const auth = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
-  }
-};
+const auth = require('../middleware/auth');
 
 // Get meals by date range
 router.get('/', auth, async (req, res) => {
@@ -25,8 +9,8 @@ router.get('/', auth, async (req, res) => {
     const { startDate, endDate } = req.query;
     const query = {
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     };
 
@@ -57,7 +41,7 @@ router.post('/', auth, async (req, res) => {
       type,
       date,
       ingredients,
-      owner: req.userId
+      owner: req.user.id
     });
 
     await newMeal.save();
@@ -75,8 +59,8 @@ router.put('/:id', auth, async (req, res) => {
     const meal = await Menu.findOne({
       _id: req.params.id,
       $or: [
-        { owner: req.userId },
-        { sharedWith: req.userId }
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
       ]
     });
 
@@ -105,7 +89,7 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const meal = await Menu.findOneAndDelete({
       _id: req.params.id,
-      owner: req.userId
+      owner: req.user.id
     });
 
     if (!meal) {
@@ -124,7 +108,7 @@ router.post('/:id/share', auth, async (req, res) => {
   try {
     const meal = await Menu.findOne({
       _id: req.params.id,
-      owner: req.userId
+      owner: req.user.id
     });
 
     if (!meal) {

@@ -1,28 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const FridgeItem = require('../models/FridgeItem');
-
-// Middleware to verify token
-const auth = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Token is not valid' });
-  }
-};
+const auth = require('../middleware/auth');
 
 // Get all items
 router.get('/items', auth, async (req, res) => {
   try {
-    const items = await FridgeItem.find({ owner: req.userId });
+    const items = await FridgeItem.find({ owner: req.user.id });
     res.json(items);
   } catch (error) {
     console.error('Get items error:', error);
@@ -41,7 +25,7 @@ router.post('/items', auth, async (req, res) => {
       unit,
       expiryDate,
       category,
-      owner: req.userId,
+      owner: req.user.id,
       fridge: '65f0f1234567890123456789'
     });
 
@@ -58,7 +42,7 @@ router.put('/items/:id', auth, async (req, res) => {
   try {
     const item = await FridgeItem.findOne({
       _id: req.params.id,
-      owner: req.userId
+      owner: req.user.id
     });
 
     if (!item) {
@@ -86,7 +70,7 @@ router.delete('/items/:id', auth, async (req, res) => {
   try {
     const item = await FridgeItem.findOneAndDelete({
       _id: req.params.id,
-      owner: req.userId
+      owner: req.user.id
     });
 
     if (!item) {

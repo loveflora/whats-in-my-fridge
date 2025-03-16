@@ -7,6 +7,8 @@ const fridgeRoutes = require('./routes/fridge');
 const shoppingListRoutes = require('./routes/shoppingList');
 const menuRoutes = require('./routes/menu');
 const friendsRoutes = require('./routes/friends');
+const groupsRoutes = require('./routes/groups');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -21,9 +23,12 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/whats-in-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/fridge', fridgeRoutes);
-app.use('/api/shopping-list', shoppingListRoutes);
+app.use('/api/shopping', shoppingListRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/friends', friendsRoutes);
+app.use('/api/groups', groupsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

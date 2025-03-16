@@ -31,6 +31,7 @@ export default function NotFoundScreen() {
       } catch (error) {
         console.error("Error checking authentication:", error);
         setIsChecking(false); // 오류 발생 시 화면 표시
+        // router.replace('/(tabs)/fridge');
       }
     };
     
