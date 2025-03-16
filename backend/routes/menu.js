@@ -84,6 +84,28 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
+// Get single meal by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const meal = await Menu.findOne({
+      _id: req.params.id,
+      $or: [
+        { owner: req.user.id },
+        { sharedWith: req.user.id }
+      ]
+    }).populate('ingredients.item');
+
+    if (!meal) {
+      return res.status(404).json({ message: 'Meal not found' });
+    }
+
+    res.json(meal);
+  } catch (error) {
+    console.error('Get meal details error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Delete meal
 router.delete('/:id', auth, async (req, res) => {
   try {

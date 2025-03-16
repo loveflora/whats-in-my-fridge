@@ -759,38 +759,7 @@ export default function ShoppingListScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
-          <FlatList
-            data={items}
-            renderItem={renderItem}
-            keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.listContainer}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Ionicons name="basket-outline" size={64} color={isDarkMode ? '#555' : '#ccc'} />
-                <Text
-                  style={[
-                    styles.emptyText,
-                    isDarkMode && styles.darkText,
-                  ]}
-                >
-                  No items in this list
-                </Text>
-                <Text
-                  style={[
-                    styles.emptySubtext,
-                    isDarkMode && styles.darkText,
-                  ]}
-                >
-                  Tap the + button to add items
-                </Text>
-              </View>
-            }
-          />
-
+          
           <View style={styles.fabContainer}>
             <TouchableOpacity
               style={styles.fab}

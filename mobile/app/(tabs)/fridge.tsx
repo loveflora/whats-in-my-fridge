@@ -65,7 +65,7 @@ export default function FridgeScreen() {
         clearTimeout(timeoutId);
         
         if (response.ok) {
-          console.log(`Connection to ${url} successful`);
+        
           API_URL = url;
           return true;
         }
@@ -116,13 +116,10 @@ export default function FridgeScreen() {
       }
 
       const data = await response.json() as FridgeItem[];
-      console.log("Fetched items:", data?.length || 0);
       setItems(Array.isArray(data) ? data : []);
     } catch (error: unknown) {
-      console.error("Error fetching items:", error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch items';
       setError(errorMessage);
-      // 오류가 발생해도 빈 배열을 설정하여 렌더링이 정상적으로 진행되도록 함
       setItems([]);
     } finally {
       setLoading(false);
@@ -177,16 +174,22 @@ export default function FridgeScreen() {
   };
 
   const renderItem = ({ item }: { item: FridgeItem }) => {
+    if (!item || !item.expiryDate) {
+      return null;
+    }
+    
     const daysUntilExpiry = getDaysUntilExpiry(item.expiryDate);
     const expiryColor = getExpiryColor(daysUntilExpiry);
 
-
-console.log("items>>>>>>>", items)
+    // 아이템 상세 페이지로 이동
+    const handleItemPress = () => {
+      router.push(`/item-details?id=${item._id}`);
+    };
 
     return (
       <TouchableOpacity
         style={[styles.itemContainer, isDarkMode && styles.darkItemContainer]}
-        onPress={() => router.push(`/item-details?id=${item._id}`)}
+        onPress={handleItemPress}
       >
         <View style={styles.itemInfo}>
           <Text style={[styles.itemName, isDarkMode && styles.darkText]}>{item.name}</Text>
@@ -248,7 +251,6 @@ console.log("items>>>>>>>", items)
         <TouchableOpacity
           style={styles.addListButton}
           onPress={() => {
-            console.log('Add button pressed');
             router.push('/modal/addItem');
           }}
         >
@@ -256,41 +258,39 @@ console.log("items>>>>>>>", items)
         </TouchableOpacity>
       </View>
 
-
-
       {items.length > 0 ? (
         <>
-<FlatList
-            data={items}
-            renderItem={renderItem}
-            keyExtractor={(item) => item._id}
-            contentContainerStyle={styles.listContainer}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-            }
-          />
+        <FlatList
+          data={items}
+          renderItem={renderItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        />
 </>
-) : (
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="fridge-outline" size={64} color={isDarkMode ? '#555' : '#ccc'} />
-                <Text
-                  style={[
-                    styles.emptyText,
-                    isDarkMode && styles.darkText,
-                  ]}
-                >
-                  No items in this list
-                </Text>
-                <Text
-                  style={[
-                    styles.emptySubtext,
-                    isDarkMode && styles.darkText,
-                  ]}
-                >
-                  Tap the + button to add items
-                </Text>
-              </View>
-)}
+      ) : (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="fridge-outline" size={64} color={isDarkMode ? '#555' : '#ccc'} />
+          <Text
+            style={[
+              styles.emptyText,
+              isDarkMode && styles.darkText,
+            ]}
+          >
+            No items in this list
+          </Text>
+          <Text
+            style={[
+              styles.emptySubtext,
+              isDarkMode && styles.darkText,
+            ]}
+          >
+            Tap the + button to add items
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

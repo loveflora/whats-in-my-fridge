@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 interface AppSettings {
   theme: 'light' | 'dark';
@@ -11,6 +12,9 @@ interface AppContextType {
   updateTheme: (theme: 'light' | 'dark') => void;
   updateLanguage: (language: 'ko' | 'en' | 'ja' | 'zh') => void;
   translations: Record<string, string>;
+  isAuthenticated: boolean;
+  checkAuthentication: () => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const defaultSettings: AppSettings = {
@@ -99,6 +103,9 @@ export const AppContext = createContext<AppContextType>({
   updateTheme: () => {},
   updateLanguage: () => {},
   translations: translationData.ko,
+  isAuthenticated: false,
+  checkAuthentication: async () => false,
+  logout: async () => {},
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -106,6 +113,7 @@ export const useAppContext = () => useContext(AppContext);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [translations, setTranslations] = useState(translationData.ko);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // 앱 시작시 저장된 설정 불러오기
   useEffect(() => {
@@ -123,7 +131,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     loadSettings();
+    // 앱 시작 시 인증 상태 확인
+    checkAuthentication();
   }, []);
+
+  // 인증 확인 함수
+  const checkAuthentication = async (): Promise<boolean> => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      // 토큰 유효성 검사
+      if (!token || typeof token !== 'string' || token.trim() === '') {
+        console.log('인증 토큰이 없거나 유효하지 않습니다. 로그인이 필요합니다.');
+        setIsAuthenticated(false);
+        
+        // 현재 경로가 로그인 페이지가 아닌 경우에만 리디렉션
+        if (!router.canGoBack() || !router.pathname?.includes('/auth/login')) {
+          router.replace('/auth/login');
+        }
+        return false;
+      }
+      
+      // 토큰이 있으면 인증됨으로 설정
+      setIsAuthenticated(true);
+      return true;
+    } catch (error) {
+      console.error('인증 확인 오류:', error);
+      setIsAuthenticated(false);
+      
+      // 에러 발생 시 로그인 페이지로 이동
+      if (!router.canGoBack() || !router.pathname?.includes('/auth/login')) {
+        router.replace('/auth/login');
+      }
+      return false;
+    }
+  };
+
+  // 로그아웃 함수
+  const logout = async (): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem('userToken');
+      setIsAuthenticated(false);
+      router.replace('/auth/login');
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+    }
+  };
 
   // 테마 업데이트
   const updateTheme = async (theme: 'light' | 'dark') => {
@@ -155,6 +208,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateTheme,
         updateLanguage,
         translations,
+        isAuthenticated,
+        checkAuthentication,
+        logout,
       }}
     >
       {children}

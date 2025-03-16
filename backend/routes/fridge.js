@@ -84,4 +84,27 @@ router.delete('/items/:id', auth, async (req, res) => {
   }
 });
 
+// Get single item by ID
+router.get('/items/:id', auth, async (req, res) => {
+  try {
+    console.log('냉장고 아이템 상세 조회 요청:', req.params.id);
+    
+    const item = await FridgeItem.findOne({
+      _id: req.params.id,
+      owner: req.user.id
+    });
+
+    if (!item) {
+      console.log('아이템을 찾을 수 없음:', req.params.id);
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    console.log('아이템 조회 성공:', item._id);
+    res.json(item);
+  } catch (error) {
+    console.error('Get item details error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

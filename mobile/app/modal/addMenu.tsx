@@ -18,7 +18,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const API_URL = 'http://192.168.20.8:5001';
 
-// 백엔드 스키마와 일치하도록 카테고리 수정
 const CATEGORIES = [
   'lunch',
   'dinner',
@@ -28,7 +27,7 @@ export default function AddMenuScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [ingredients, setIngredients] = useState('');
-  const [type, setType] = useState('lunch'); // category에서 type으로 변경, 기본값 lunch
+  const [type, setType] = useState('lunch');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,38 +46,35 @@ export default function AddMenuScreen() {
         return;
       }
 
-      // 날짜를 ISO 문자열로 변환할 때 UTC 변환 없이 로컬 날짜 그대로 사용
-      // 시간 부분은 정오(12:00:00)로 설정하여 표준화
       const localDate = new Date(date);
-      const formattedDate = new Date(
-        localDate.getFullYear(),
-        localDate.getMonth(),
-        localDate.getDate(),
-        12, 0, 0 // 정오 시간으로 표준화
-      ).toISOString();
+      const formattedDate = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
 
-      // 재료 문자열을 백엔드 스키마에 맞게 변환
       const ingredientsArray = ingredients
         .split(',')
         .map(item => item.trim())
         .filter(item => item !== '')
         .map(item => ({
-          // 백엔드에서 기대하는 정확한 형식으로 변경
           name: item,
           quantity: 1,
-          unit: ''
+          unit: '개'
         }));
 
-      console.log('날짜 전송:', formattedDate);
-      console.log('재료 전송:', JSON.stringify(ingredientsArray));
+      console.log('보내는 데이터:');
+      console.log('- 날짜:', formattedDate);
+      console.log('- 타입/카테고리:', type);
+      console.log('- 재료 배열:', JSON.stringify(ingredientsArray));
 
       const menuData = {
         name,
         description,
         ingredients: ingredientsArray,
         type,
-        date: formattedDate,
+        category: type,
+        mealType: type,
+        date: formattedDate
       };
+
+      console.log('전체 메뉴 데이터:', JSON.stringify(menuData));
 
       const response = await fetch(`${API_URL}/api/menu`, {
         method: 'POST',
@@ -94,6 +90,9 @@ export default function AddMenuScreen() {
         console.error('API 오류 응답:', errorData);
         throw new Error(errorData.message || '메뉴 추가에 실패했습니다');
       }
+      
+      const responseData = await response.json();
+      console.log('메뉴 추가 성공 응답:', JSON.stringify(responseData));
 
       Alert.alert('성공', '메뉴가 성공적으로 추가되었습니다', [
         { text: '확인', onPress: () => router.back() }
@@ -116,7 +115,7 @@ export default function AddMenuScreen() {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>새 메뉴 추가</Text>
-        <View style={{ width: 40 }} />
+      1<View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.formContainer}>
@@ -217,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 10,
     paddingBottom: 20,
     paddingHorizontal: 16,
     backgroundColor: '#fff',

@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingTop: 6,
     paddingBottom: 6,
-    marginTop: 50,
+    marginTop: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
