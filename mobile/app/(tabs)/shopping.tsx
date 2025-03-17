@@ -14,6 +14,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppContext } from '@/context/AppContext';
@@ -396,19 +397,19 @@ export default function ShoppingListScreen() {
     }
   };
 
-  const openEditItemModal = (item: ShoppingItem) => {
-    setEditingItem(item);
-    setNewItemName(item.name);
-    setNewItemQuantity(item.quantity.toString());
-    setNewItemUnit(item.unit);
-    setItemModalVisible(true);
-  };
+  // const openEditItemModal = (item: ShoppingItem) => {
+  //   setEditingItem(item);
+  //   setNewItemName(item.name);
+  //   setNewItemQuantity(item.quantity.toString());
+  //   setNewItemUnit(item.unit);
+  //   setItemModalVisible(true);
+  // };
 
-  const openEditListModal = (list: ShoppingList) => {
-    setEditingList(list);
-    setNewListName(list.name);
-    setListModalVisible(true);
-  };
+  // const openEditListModal = (list: ShoppingList) => {
+  //   setEditingList(list);
+  //   setNewListName(list.name);
+  //   setListModalVisible(true);
+  // };
 
   const toggleFavorite = async (id: string) => {
     try {
@@ -771,7 +772,7 @@ export default function ShoppingListScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.saveButton}
               onPress={handleAddOrEditItem}
             >
@@ -783,7 +784,7 @@ export default function ShoppingListScreen() {
               >
                 {editingItem ? 'Save Changes' : 'Add Item'}
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </Modal>
@@ -918,20 +919,26 @@ export default function ShoppingListScreen() {
     const toggleListCompleted = async (listId: string, currentStatus: boolean) => {
       try {
         // 서버 API 호출 (필요한 경우)
-        /*
-        const response = await fetch(`${API_URL}/api/shopping/lists/${listId}/completed`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ completed: !currentStatus }),
-        });
 
-        if (!response.ok) {
-          throw new Error('Failed to update list status');
-        }
-        */
+        // const token = await AsyncStorage.getItem('userToken');
+        // if (!token) {
+        //   router.replace('/auth/login');
+        //   return;
+        // }
+    
+        // const response = await fetch(`${API_URL}/api/shopping/lists/${listId}/completed`, {
+        //   method: 'PUT',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'Authorization': `Bearer ${token}`,
+        //   },
+        //   body: JSON.stringify({ completed: !currentStatus }),
+        // });
+
+        // if (!response.ok) {
+        //   throw new Error('Failed to update list status');
+        // }
+
 
         // 로컬 상태 업데이트
         const updatedLists = lists.map(list => 
@@ -995,10 +1002,10 @@ export default function ShoppingListScreen() {
                       style={styles.listItemCheckbox}
                       onPress={() => toggleListCompleted(item._id, item.completed || false)}
                     >
-                      <Ionicons
-                        name={item.completed ? 'checkbox' : 'square-outline'}
+                      <MaterialIcons
+                        name={item.completed ? 'radio-button-checked' : 'radio-button-unchecked'}
                         size={24}
-                        color={isDarkMode ? '#fff' : '#3478F6'}
+                        color={isDarkMode ? '#fff' : '#e2e2e2'}
                       />
                     </TouchableOpacity>
                     {/* text input */}
@@ -1038,10 +1045,10 @@ export default function ShoppingListScreen() {
                       style={styles.listItemCheckbox}
                       onPress={() => toggleListCompleted(item._id, item.completed || false)}
                     >
-                      <Ionicons
-                        name={item.completed ? 'checkbox' : 'square-outline'}
+                    <MaterialIcons
+                        name={item.completed ? 'radio-button-checked' : 'radio-button-unchecked'}
                         size={24}
-                        color={isDarkMode ? '#fff' : '#3478F6'}
+                        color={isDarkMode ? '#fff' : '#e2e2e2'}
                       />
                     </TouchableOpacity>
                     <Text
@@ -1114,6 +1121,7 @@ export default function ShoppingListScreen() {
         </View>
 
         {renderListSelector()}
+
 
         {currentList ? (
           <>
@@ -1211,9 +1219,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingTop: 16,
+    paddingHorizontal: 16, // 좌우
   },
   title: {
     fontSize: 24,
@@ -1245,7 +1252,8 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: '#F5F5F5',
+    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: 1,
   },
   // activeListItem: {
   //   backgroundColor: '#E2EDFF',
@@ -1257,9 +1265,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#32325D',
   },
   listItemText: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#000',
-    padding: 10
+    padding: 6
   },
   listItemActions: {
     flexDirection: 'row',
@@ -1296,17 +1304,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#666',
   },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 80,
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
+  // listContainer: {
+  //   padding: 16,
+  //   paddingBottom: 80,
+  // },
+  // itemContainer: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   paddingVertical: 12,
+  //   borderBottomWidth: 1,
+  //   borderBottomColor: '#f0f0f0',
+  // },
   darkItemContainer: {
     backgroundColor: '#2c2c2c',
   },
@@ -1525,26 +1533,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
-    height: '100%',
+    height: '80%',
     borderRadius: 10,
+    marginRight: 10
   },
   listItemEditContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
+    padding: 11,
     marginVertical: 4,
-    marginHorizontal: 10,
+    marginHorizontal: 9,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: 1,
   },
   listItemEditInput: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     color: '#000',
-    padding: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    paddingTop: 4,
+    paddingVertical: 5,
+    paddingLeft: 6,
   },
   listItemContent: {
     flexDirection: 'row',
