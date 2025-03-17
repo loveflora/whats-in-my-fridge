@@ -92,7 +92,7 @@ export default function ShoppingListScreen() {
         },
       });
 
-      console.log(response);
+      // console.log(response);
 
       if (!response.ok) {
         throw new Error('Failed to fetch shopping lists');
@@ -192,32 +192,32 @@ export default function ShoppingListScreen() {
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
+  // const handleDeleteItem = async (id: string) => {
+  //   try {
+  //     const token = await AsyncStorage.getItem('userToken');
+  //     if (!token) {
+  //       router.replace('/auth/login');
+  //       return;
+  //     }
 
-      const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  //     const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
+  //       method: 'DELETE',
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete item');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to delete item');
+  //     }
 
-      // Update local state
-      setItems(items.filter((item) => item._id !== id));
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      Alert.alert('Error', 'Failed to delete item');
-    }
-  };
+  //     // Update local state
+  //     setItems(items.filter((item) => item._id !== id));
+  //   } catch (error) {
+  //     console.error('Error deleting item:', error);
+  //     Alert.alert('Error', 'Failed to delete item');
+  //   }
+  // };
 
   const handleAddOrEditItem = async () => {
     if (!newItemName || !newItemQuantity) {
@@ -435,6 +435,8 @@ export default function ShoppingListScreen() {
         }),
       });
 
+    console.log("~~~~~~~~~~", response)
+
       if (!response.ok) {
         throw new Error('Failed to update favorite status');
       }
@@ -452,9 +454,7 @@ export default function ShoppingListScreen() {
   };
 
   const navigateToDetail = (item: ShoppingItem) => {
-    // 상세 화면으로 이동 (상세 화면이 있다고 가정)
-    Alert.alert("상세 화면", `${item.name} 상세 정보로 이동합니다.`);
-    // router.push(`/shopping-detail/${item._id}`);
+    router.push(`/shopping-detail/${item._id}`);
   };
 
   const [editingInlineItemId, setEditingInlineItemId] = useState<string | null>(null);
@@ -552,7 +552,7 @@ export default function ShoppingListScreen() {
         style={[styles.swipeButton, { backgroundColor: '#FF3B30' }]}
         onPress={() => {
           swipeableRefs.current[item._id]?.close();
-          handleDeleteItem(item._id);
+          handleDeleteList(item._id);
         }}
       >
         <Ionicons name="trash-outline" size={24} color="#fff" />
@@ -562,54 +562,147 @@ export default function ShoppingListScreen() {
 
     return (
       <View style={{ flexDirection: 'row', width: 240 }}>
-        {detailButton()}
+        {/* {detailButton()} */}
         {favoriteButton()}
         {deleteButton()}
       </View>
     );
   };
 
+
+    // 리스트 인라인 편집 시작
+    const startInlineListEdit = (list: ShoppingList) => {
+      setEditingListId(list._id);
+      setEditingListName(list.name);
+    };
+
+
+    // 리스트 인라인 편집 완료
+    const finishInlineListEdit = async () => {
+      if (!editingListId || !editingListName.trim()) {
+        setEditingListId(null);
+        return;
+      }
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/shopping/lists/${editingListId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name: editingListName }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update list');
+        }
+
+        // 리스트 상태 업데이트
+        const updatedLists = lists.map(list => 
+          list._id === editingListId ? { ...list, name: editingListName } : list
+        );
+        setLists(updatedLists);
+
+        // 현재 선택된 리스트인 경우 currentList도 업데이트
+        if (currentList && currentList._id === editingListId) {
+          setCurrentList({ ...currentList, name: editingListName });
+        }
+
+        setEditingListId(null);
+      } catch (error) {
+        console.error('Error updating list:', error);
+        Alert.alert('Error', 'Failed to update list');
+        setEditingListId(null);
+      }
+    };
+
+
+    // 리스트 완료 상태 토글
+    const toggleListCompleted = async (listId: string, currentStatus: boolean) => {
+      try {
+        // 서버 API 호출 (필요한 경우)
+
+        // const token = await AsyncStorage.getItem('userToken');
+        // if (!token) {
+        //   router.replace('/auth/login');
+        //   return;
+        // }
+    
+        // const response = await fetch(`${API_URL}/api/shopping/lists/${listId}/completed`, {
+        //   method: 'PUT',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'Authorization': `Bearer ${token}`,
+        //   },
+        //   body: JSON.stringify({ completed: !currentStatus }),
+        // });
+
+        // if (!response.ok) {
+        //   throw new Error('Failed to update list status');
+        // }
+
+
+        // 로컬 상태 업데이트
+        const updatedLists = lists.map(list => 
+          list._id === listId ? { ...list, completed: !currentStatus } : list
+        );
+        setLists(updatedLists);
+
+        // 현재 선택된 리스트인 경우 currentList도 업데이트
+        if (currentList && currentList._id === listId) {
+          setCurrentList({ ...currentList, completed: !currentStatus });
+        }
+      } catch (error) {
+        console.error('Error toggling list status:', error);
+        Alert.alert('Error', 'Failed to update list status');
+      }
+    };
+
   const renderItem = ({ item }: { item: ShoppingItem }) => {
-    // 인라인 수정 중인 항목일 경우
-    if (editingInlineItemId === item._id) {
+    //; 수정 중
+    if (editingListId === item._id ) {
       return (
-        <View style={[styles.itemContainer, isDarkMode && styles.darkItemContainer]}>
-          <View style={styles.inlineEditContainer}>
-            <TextInput
-              style={[styles.inlineEditInput, isDarkMode && styles.darkTextInput]}
-              value={inlineItemName}
-              onChangeText={setInlineItemName}
-              autoFocus
-            />
-            <View style={styles.inlineEditQuantityContainer}>
-              <TextInput
-                style={[styles.inlineEditQuantityInput, isDarkMode && styles.darkTextInput]}
-                value={inlineItemQuantity}
-                onChangeText={setInlineItemQuantity}
-                keyboardType="numeric"
-              />
-              <Text style={[styles.inlineEditUnit, isDarkMode && styles.darkText]}>{item.unit}</Text>
-            </View>
-          </View>
-          <View style={styles.inlineEditButtons}>
-            <TouchableOpacity
-              style={styles.inlineEditSaveButton}
-              onPress={saveInlineEdit}
-            >
-              <Ionicons name="checkmark" size={24} color="#3478F6" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.inlineEditCancelButton}
-              onPress={() => setEditingInlineItemId(null)}
-            >
-              <Ionicons name="close" size={24} color="#FF3B30" />
-            </TouchableOpacity>
-          </View>
+        <View style={[
+          styles.listItemEditContainer,
+          isDarkMode && styles.darkListItem,
+        ]}>
+
+          {/* check box */}
+          <TouchableOpacity
+                      style={styles.listItemCheckbox}
+                      onPress={() => toggleListCompleted(item._id, item.completed || false)}
+                    >
+                      <MaterialIcons
+                        name={item.completed ? 'radio-button-checked' : 'radio-button-unchecked'}
+                        size={24}
+                        color={isDarkMode ? '#fff' : '#e2e2e2'}
+                      />
+                    </TouchableOpacity>
+
+      {/* text input */}
+       <TextInput
+                    style={[
+                      styles.listItemEditInput,
+                      isDarkMode && styles.darkText,
+                    ]}
+                    value={editingListName}
+                    onChangeText={setEditingListName}
+                    autoFocus
+                    onBlur={finishInlineListEdit} // 포커스 해제 시 저장
+                    onSubmitEditing={finishInlineListEdit}  // 엔터 키 입력 시 저장
+                  />
         </View>
       );
     }
 
-    // 일반 항목
+    //; 일반 항목
     return (
       <Swipeable
         ref={(ref) => { swipeableRefs.current[item._id] = ref; }}
@@ -618,33 +711,46 @@ export default function ShoppingListScreen() {
         rightThreshold={40}
         overshootRight={false}
       >
-        <TouchableOpacity
+        {/* <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => startInlineEdit(item)}
           style={[styles.itemContainer, isDarkMode && styles.darkItemContainer]}
-        >
-          <TouchableOpacity
+        > */}
+     <TouchableOpacity
+              style={[
+                styles.listItem,
+                currentList && currentList._id === item._id && styles.activeListItem,
+                isDarkMode && styles.darkListItem,
+                currentList && currentList._id === item._id && isDarkMode && styles.darkActiveListItem,
+              ]}
+              onPress={() => startInlineListEdit(item)} // 터치 시 수정 모드로 전환
+              // onLongPress={() => startInlineListEdit(item
+              >
+          {/* <TouchableOpacity
             style={styles.checkboxContainer}
             onPress={() => toggleItemStatus(item._id, item.completed)}
-          >
-            <Ionicons
-              name={item.completed ? 'checkbox' : 'square-outline'}
-              size={24}
-              color={isDarkMode ? '#fff' : '#3478F6'}
-            />
-          </TouchableOpacity>
-          <View style={styles.itemInfo}>
-            <Text
-              style={[
-                styles.itemName,
-                item.completed && styles.completedItemText,
-                isDarkMode && styles.darkText,
-                item.completed && isDarkMode && styles.darkPurchasedText,
-                favorites[item._id] && styles.favoriteItemText,
-              ]}
-            >
-              {item.name} {favorites[item._id] && <Ionicons name="star" size={16} color="#FFD60A" />}
-            </Text>
+          > */}
+                <View style={styles.listItemContent}>
+                    <TouchableOpacity
+                      style={styles.listItemCheckbox}
+                      onPress={() => toggleListCompleted(item._id, item.completed || false)}
+                    >
+                    <MaterialIcons
+                        name={item.completed ? 'radio-button-checked' : 'radio-button-unchecked'}
+                        size={24}
+                        color={isDarkMode ? '#fff' : '#e2e2e2'}
+                      />
+                    </TouchableOpacity>
+              <Text
+                style={[
+                  styles.listItemText,
+                  currentList && currentList._id === item._id && styles.activeListItemText,
+                        item.completed && styles.completedListText,
+                  isDarkMode && styles.darkText,
+                ]}
+              >
+                {item.name} {favorites[item._id] && <Ionicons name="star" size={16} color="#FFD60A" />}
+              </Text>    
             <Text
               style={[
                 styles.itemDetails,
@@ -863,98 +969,8 @@ export default function ShoppingListScreen() {
     // const [editingListId, setEditingListId] = useState<string | null>(null);
     // const [editingListName, setEditingListName] = useState<string>('');
 
-    // 리스트 인라인 편집 시작
-    const startInlineListEdit = (list: ShoppingList) => {
-      setEditingListId(list._id);
-      setEditingListName(list.name);
-    };
+  
 
-    // 리스트 인라인 편집 완료
-    const finishInlineListEdit = async () => {
-      if (!editingListId || !editingListName.trim()) {
-        setEditingListId(null);
-        return;
-      }
-
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/api/shopping/lists/${editingListId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name: editingListName }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update list');
-        }
-
-        // 리스트 상태 업데이트
-        const updatedLists = lists.map(list => 
-          list._id === editingListId ? { ...list, name: editingListName } : list
-        );
-        setLists(updatedLists);
-
-        // 현재 선택된 리스트인 경우 currentList도 업데이트
-        if (currentList && currentList._id === editingListId) {
-          setCurrentList({ ...currentList, name: editingListName });
-        }
-
-        setEditingListId(null);
-      } catch (error) {
-        console.error('Error updating list:', error);
-        Alert.alert('Error', 'Failed to update list');
-        setEditingListId(null);
-      }
-    };
-
-    // 리스트 완료 상태 토글
-    const toggleListCompleted = async (listId: string, currentStatus: boolean) => {
-      try {
-        // 서버 API 호출 (필요한 경우)
-
-        // const token = await AsyncStorage.getItem('userToken');
-        // if (!token) {
-        //   router.replace('/auth/login');
-        //   return;
-        // }
-    
-        // const response = await fetch(`${API_URL}/api/shopping/lists/${listId}/completed`, {
-        //   method: 'PUT',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'Authorization': `Bearer ${token}`,
-        //   },
-        //   body: JSON.stringify({ completed: !currentStatus }),
-        // });
-
-        // if (!response.ok) {
-        //   throw new Error('Failed to update list status');
-        // }
-
-
-        // 로컬 상태 업데이트
-        const updatedLists = lists.map(list => 
-          list._id === listId ? { ...list, completed: !currentStatus } : list
-        );
-        setLists(updatedLists);
-
-        // 현재 선택된 리스트인 경우 currentList도 업데이트
-        if (currentList && currentList._id === listId) {
-          setCurrentList({ ...currentList, completed: !currentStatus });
-        }
-      } catch (error) {
-        console.error('Error toggling list status:', error);
-        Alert.alert('Error', 'Failed to update list status');
-      }
-    };
 
     const renderRightActions = (progress, dragX, id) => {
       const translateX = dragX.interpolate({
@@ -986,95 +1002,7 @@ export default function ShoppingListScreen() {
         <FlatList
           data={lists}
           keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <Swipeable
-              // renderLeftActions={renderLeftActions}
-              renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item._id)}
-            >
-              {editingListId === item._id ? (
-                // 수정 모드일 때
-                <View style={[
-                  styles.listItemEditContainer,
-                  isDarkMode && styles.darkListItem,
-                ]}>
-                  {/* check box */}
-                   <TouchableOpacity
-                      style={styles.listItemCheckbox}
-                      onPress={() => toggleListCompleted(item._id, item.completed || false)}
-                    >
-                      <MaterialIcons
-                        name={item.completed ? 'radio-button-checked' : 'radio-button-unchecked'}
-                        size={24}
-                        color={isDarkMode ? '#fff' : '#e2e2e2'}
-                      />
-                    </TouchableOpacity>
-                    {/* text input */}
-                  <TextInput
-                    style={[
-                      styles.listItemEditInput,
-                      isDarkMode && styles.darkText,
-                    ]}
-                    value={editingListName}
-                    onChangeText={setEditingListName}
-                    autoFocus
-                    onBlur={finishInlineListEdit} // 포커스 해제 시 저장
-                    onSubmitEditing={finishInlineListEdit}  // 엔터 키 입력 시 저장
-                  />
-                  {/* <TouchableOpacity onPress={finishInlineListEdit}>
-                    <Ionicons name="checkmark" size={24} color={isDarkMode ? '#fff' : '#4CAF50'} />
-                  </TouchableOpacity> */}
-                </View>
-              ) : (
-                // 일반 모드일 때
-                <TouchableOpacity
-                  style={[
-                    styles.listItem,
-                    currentList && currentList._id === item._id && styles.activeListItem,
-                    isDarkMode && styles.darkListItem,
-                    currentList && currentList._id === item._id && isDarkMode && styles.darkActiveListItem,
-                  ]}
-                  // onPress={() => {
-                  //   setCurrentList(item);
-                  //   fetchItems(item._id);
-                  // }}
-                  onPress={() => startInlineListEdit(item)} // 터치 시 수정 모드로 전환
-                  // onLongPress={() => startInlineListEdit(item)}
-                >
-                  <View style={styles.listItemContent}>
-                    <TouchableOpacity
-                      style={styles.listItemCheckbox}
-                      onPress={() => toggleListCompleted(item._id, item.completed || false)}
-                    >
-                    <MaterialIcons
-                        name={item.completed ? 'radio-button-checked' : 'radio-button-unchecked'}
-                        size={24}
-                        color={isDarkMode ? '#fff' : '#e2e2e2'}
-                      />
-                    </TouchableOpacity>
-                    <Text
-                      style={[
-                        styles.listItemText,
-                        currentList && currentList._id === item._id && styles.activeListItemText,
-                        item.completed && styles.completedListText,
-                        isDarkMode && styles.darkText,
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                  </View>
-                  {/* <View style={styles.listItemActions}>
-                    <TouchableOpacity
-                      onPress={() => startInlineListEdit(item)}
-                      style={styles.listItemAction}
-                    >
-                      <Ionicons name="pencil" size={18} color={isDarkMode ? '#fff' : '#3478F6'} />
-                    </TouchableOpacity>
-                  </View> */}
-                </TouchableOpacity>
-              )}
-            </Swipeable>
-          )}
-          contentContainerStyle={styles.listSelectorContent}
+          renderItem={renderItem}
         />
       </View>
     );
@@ -1235,13 +1163,9 @@ const styles = StyleSheet.create({
   },
   listSelectorContainer: {
     flex: 1,
-    // width: '100%',
-    // marginBottom: 10,
-    // maxWidth: 250, // 리스트 영역 너비 제한
   },
   listSelectorContent: {
     paddingVertical: 5,
-    // backgroundColor: '#F5F5F5',
     borderRadius: 10,
   },
   listItem: {
@@ -1249,15 +1173,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 10,
-    marginVertical: 4,
-    marginHorizontal: 10,
     borderRadius: 8,
-    borderBottomColor: '#f0f0f0',
-    borderBottomWidth: 1,
+    marginLeft: 4,
   },
-  // activeListItem: {
-  //   backgroundColor: '#E2EDFF',
-  // },
   darkListItem: {
     backgroundColor: '#2c2c2e',
   },
@@ -1267,7 +1185,11 @@ const styles = StyleSheet.create({
   listItemText: {
     fontSize: 16,
     color: '#000',
-    padding: 6
+    paddingHorizontal: 6,
+    paddingVertical: 14,
+    width: "100%",
+    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: 1,
   },
   listItemActions: {
     flexDirection: 'row',
@@ -1304,17 +1226,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: '#666',
   },
-  // listContainer: {
-  //   padding: 16,
-  //   paddingBottom: 80,
-  // },
-  // itemContainer: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   paddingVertical: 12,
-  //   borderBottomWidth: 1,
-  //   borderBottomColor: '#f0f0f0',
-  // },
+  listContainer: {
+    padding: 16,
+    paddingBottom: 80,
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
   darkItemContainer: {
     backgroundColor: '#2c2c2c',
   },
@@ -1467,7 +1389,7 @@ const styles = StyleSheet.create({
   },
   swipeButton: {
     width: 80,
-    height: '100%',
+    height: '84%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1479,7 +1401,8 @@ const styles = StyleSheet.create({
   favoriteItemText: {
     fontWeight: 'bold',
   },
-  // 인라인 수정 스타일
+
+  //; 수정
   inlineEditContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -1545,16 +1468,16 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 9,
     borderRadius: 8,
-    borderBottomColor: '#f0f0f0',
-    borderBottomWidth: 1,
   },
   listItemEditInput: {
     flex: 1,
     fontSize: 16,
     color: '#000',
     paddingTop: 4,
-    paddingVertical: 5,
-    paddingLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 14,
+    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: 1,
   },
   listItemContent: {
     flexDirection: 'row',
