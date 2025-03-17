@@ -22,7 +22,8 @@ const notificationSchema = new mongoose.Schema({
   related: {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
-    itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' }
+    itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
+    menuId: { type: mongoose.Schema.Types.ObjectId, ref: 'Menu' }
   },
   createdAt: {
     type: Date,

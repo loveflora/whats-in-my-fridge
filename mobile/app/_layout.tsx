@@ -10,6 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import "react-native-reanimated";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import React from "react";
@@ -68,7 +69,7 @@ function RootLayoutNav() {
     // 경로가 인증이 필요하고 인증되지 않은 상태인 경우
     if (requiresAuth() && isAuthenticated === false) {
       console.log("인증이 필요한 경로에 접근했지만 인증되지 않았습니다. 로그인 화면으로 이동합니다.");
-      // ✅ useEffect 안에서 setTimeout 사용하여 Root Layout이 마운트된 후 실행
+      // useEffect 안에서 setTimeout 사용하여 Root Layout이 마운트된 후 실행
       setTimeout(() => {
         router.replace("/auth/login");
       }, 0);
@@ -135,8 +136,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AppProvider>
-      <RootLayoutNav />
-    </AppProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppProvider>
+        <RootLayoutNav />
+      </AppProvider>
+    </GestureHandlerRootView>
   );
 }

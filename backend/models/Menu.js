@@ -27,6 +27,13 @@ const menuSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  cook: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  cookName: {
+    type: String
+  },
   sharedWith: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

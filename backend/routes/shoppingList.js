@@ -136,6 +136,7 @@ router.get('/items', auth, async (req, res) => {
       quantity: item.quantity,
       unit: item.unit,
       completed: item.completed,
+      favorite: item.favorite,
       listId: list._id,
       createdAt: item.createdAt || new Date()
     }));
@@ -150,7 +151,7 @@ router.get('/items', auth, async (req, res) => {
 // Add item to shopping list
 router.post('/items', auth, async (req, res) => {
   try {
-    const { name, quantity, unit, completed, listId } = req.body;
+    const { name, quantity, unit, completed, favorite, listId } = req.body;
     
     if (!listId) {
       return res.status(400).json({ message: 'listId is required' });
@@ -173,6 +174,7 @@ router.post('/items', auth, async (req, res) => {
       quantity,
       unit,
       completed: completed || false,
+      favorite: favorite || false,
       createdAt: new Date()
     };
     
@@ -187,6 +189,7 @@ router.post('/items', auth, async (req, res) => {
       quantity: addedItem.quantity,
       unit: addedItem.unit,
       completed: addedItem.completed,
+      favorite: addedItem.favorite,
       listId: list._id,
       createdAt: addedItem.createdAt
     };
@@ -201,7 +204,7 @@ router.post('/items', auth, async (req, res) => {
 // Update item in shopping list
 router.put('/items/:id', auth, async (req, res) => {
   try {
-    const { name, quantity, unit, completed } = req.body;
+    const { name, quantity, unit, completed, favorite } = req.body;
     
     // Find the list containing this item
     const list = await ShoppingList.findOne({
@@ -227,6 +230,7 @@ router.put('/items/:id', auth, async (req, res) => {
     if (quantity !== undefined) item.quantity = quantity;
     if (unit !== undefined) item.unit = unit;
     if (completed !== undefined) item.completed = completed;
+    if (favorite !== undefined) item.favorite = favorite;
 
     await list.save();
     
@@ -237,6 +241,7 @@ router.put('/items/:id', auth, async (req, res) => {
       quantity: item.quantity,
       unit: item.unit,
       completed: item.completed,
+      favorite: item.favorite,
       listId: list._id,
       createdAt: item.createdAt
     };

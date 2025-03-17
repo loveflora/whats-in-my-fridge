@@ -11,7 +11,9 @@ import {
   TextInput,
   Platform,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  FlatList,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +22,13 @@ import { useAppContext } from '@/context/AppContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const API_URL = 'http://192.168.20.8:5001';
+
+interface Member {
+  _id: string;
+  name: string;
+  email: string;
+  isOwner: boolean;
+}
 
 interface Ingredient {
   name?: string;
@@ -40,6 +49,8 @@ interface MenuItem {
   type?: string;
   mealType?: string;
   date: string;
+  cook?: string; // 요리사 ID
+  cookName?: string; // 요리사 이름
 }
 
 export default function MenuDetailsScreen() {
@@ -52,10 +63,72 @@ export default function MenuDetailsScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editedMenu, setEditedMenu] = useState<Partial<MenuItem>>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [cookSelectorVisible, setCookSelectorVisible] = useState(false);
+  const [currentGroup, setCurrentGroup] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchMenuDetails();
+    fetchUserGroup();
   }, [id]);
+
+  // 현재 사용자의 그룹 정보 가져오기
+  const fetchUserGroup = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/auth/user`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user info');
+      }
+
+      const userData = await response.json();
+      
+      if (userData.currentGroup) {
+        setCurrentGroup({
+          id: userData.currentGroup._id,
+          name: userData.currentGroup.name
+        });
+        fetchGroupMembers(userData.currentGroup._id);
+      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    }
+  };
+
+  // 그룹 멤버 목록 가져오기
+  const fetchGroupMembers = async (groupId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+      
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/members`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error("멤버 API 오류, 상태코드:", response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (data && data.members) {
+        setMembers(data.members);
+      }
+    } catch (error) {
+      console.error('Error fetching group members:', error);
+    }
+  };
 
   const fetchMenuDetails = async () => {
     try {
@@ -239,6 +312,120 @@ export default function MenuDetailsScreen() {
     }
   };
 
+  // 요리사 선택 모달 열기
+  const openCookSelector = () => {
+    setCookSelectorVisible(true);
+  };
+
+  // 요리사 선택
+  const selectCook = async (member: Member) => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      // 메뉴 업데이트 요청
+      const response = await fetch(`${API_URL}/api/menu/${id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cook: member._id,
+          cookName: member.name
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API 오류 응답:', errorText);
+        throw new Error('Failed to update cook');
+      }
+
+      const updatedMenu = await response.json();
+      setMenu(updatedMenu);
+      setCookSelectorVisible(false);
+
+      // 알림 보내기
+      await sendNotificationToGroupMembers(member);
+
+      Alert.alert('알림', `${member.name}님이 요리사로 지정되었습니다.`);
+    } catch (error) {
+      console.error('Error selecting cook:', error);
+      Alert.alert('오류', '요리사 지정에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 그룹 멤버들에게 알림 보내기
+  const sendNotificationToGroupMembers = async (cook: Member) => {
+    try {
+      if (!currentGroup || !menu) return;
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/api/notifications/send`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          groupId: currentGroup.id,
+          title: '요리사 지정 알림',
+          message: `${cook.name}님이 ${menu.name} 메뉴의 요리사로 지정되었습니다. (조리: ${cook.name})`,
+          type: 'COOK_ASSIGNED',
+          data: {
+            menuId: menu._id,
+            menuName: menu.name,
+            cookId: cook._id,
+            cookName: cook.name
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error('알림 전송 실패:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error sending notifications:', error);
+    }
+  };
+
+  // 회원 아바타 렌더링
+  const renderMemberAvatar = (name: string) => {
+    const initials = name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase();
+
+    const colors = [
+      '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+      '#1abc9c', '#d35400', '#34495e', '#16a085', '#c0392b'
+    ];
+    
+    // 이름에 기반한 일관된 색상 선택
+    const hashCode = name.split('').reduce((acc, char) => {
+      return acc + char.charCodeAt(0);
+    }, 0);
+    
+    const colorIndex = hashCode % colors.length;
+    const backgroundColor = colors[colorIndex];
+
+    return (
+      <View style={[styles.avatar, { backgroundColor }]}>
+        <Text style={styles.avatarText}>{initials}</Text>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, isDarkMode && styles.darkContainer]}>
@@ -297,6 +484,20 @@ export default function MenuDetailsScreen() {
               {menu.date ? formatDate(menu.date) : '날짜 정보 없음'}
             </Text>
           </View>
+
+          {/* 요리사 정보 표시 */}
+          <TouchableOpacity
+            style={[styles.cookInfoContainer, isDarkMode && styles.darkCookInfoContainer]}
+            onPress={openCookSelector}
+          >
+            <Ionicons name="person-outline" size={20} color={isDarkMode ? '#ddd' : '#666'} />
+            <Text style={[styles.detailText, isDarkMode && styles.darkText]}>
+              {menu.cookName 
+                ? `조리: ${menu.cookName}` 
+                : '요리사를 지정하려면 탭하세요'}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#ddd' : '#666'} />
+          </TouchableOpacity>
 
           {menu.description && (
             <View style={styles.section}>
@@ -454,6 +655,70 @@ export default function MenuDetailsScreen() {
           </View>
         </View>
         </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* 요리사 선택 모달 */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={cookSelectorVisible}
+        onRequestClose={() => setCookSelectorVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={[styles.modalView, isDarkMode && styles.darkModalView]}>
+            <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>요리사 선택</Text>
+            
+            {members.length > 0 ? (
+              <FlatList
+                data={members}
+                keyExtractor={item => item._id}
+                style={styles.membersList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={[
+                      styles.memberItem,
+                      menu.cook === item._id && styles.selectedMemberItem,
+                      isDarkMode && menu.cook === item._id && styles.darkSelectedMemberItem
+                    ]}
+                    onPress={() => selectCook(item)}
+                  >
+                    {renderMemberAvatar(item.name)}
+                    <View style={styles.memberInfo}>
+                      <Text style={[styles.memberName, isDarkMode && styles.darkText]}>
+                        {item.name}
+                      </Text>
+                      <Text style={[styles.memberEmail, isDarkMode && styles.darkSubText]}>
+                        {item.email}
+                      </Text>
+                    </View>
+                    {menu.cook === item._id && (
+                      <Ionicons 
+                        name="checkmark-circle" 
+                        size={22} 
+                        color={isDarkMode ? "#3478F6" : "#3478F6"} 
+                        style={styles.selectedIcon} 
+                      />
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <View style={styles.emptyList}>
+                <Ionicons name="people-outline" size={48} color={isDarkMode ? "#777" : "#ccc"} />
+                <Text style={[styles.emptyListText, isDarkMode && styles.darkText]}>
+                  그룹 멤버가 없습니다
+                </Text>
+              </View>
+            )}
+            
+            <TouchableOpacity
+              style={[styles.button, styles.buttonCancel]}
+              onPress={() => setCookSelectorVisible(false)}
+            >
+              <Text style={styles.buttonText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -706,5 +971,75 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  cookInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+  },
+  darkCookInfoContainer: {
+    backgroundColor: '#2c2c2c',
+  },
+  membersList: {
+    width: '100%',
+    maxHeight: 300,
+    marginVertical: 16,
+  },
+  memberItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  selectedMemberItem: {
+    backgroundColor: '#f0f7ff',
+  },
+  darkSelectedMemberItem: {
+    backgroundColor: '#263040',
+  },
+  memberInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  memberName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  memberEmail: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 2,
+  },
+  selectedIcon: {
+    marginLeft: 8,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emptyList: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: '#777',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });

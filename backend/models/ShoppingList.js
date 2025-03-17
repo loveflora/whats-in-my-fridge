@@ -13,6 +13,10 @@ const shoppingListItemSchema = new mongoose.Schema({
   completed: {
     type: Boolean,
     default: false
+  },
+  favorite: {
+    type: Boolean,
+    default: false
   }
 });
 
