@@ -1,15 +1,10 @@
 const mongoose = require('mongoose');
 
-const shoppingListItemSchema = new mongoose.Schema({
+const shoppingListSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: false
   },
-  quantity: {
-    type: Number,
-    required: true
-  },
-  unit: String,
   completed: {
     type: Boolean,
     default: false
@@ -17,15 +12,15 @@ const shoppingListItemSchema = new mongoose.Schema({
   favorite: {
     type: Boolean,
     default: false
-  }
-});
-
-const shoppingListSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
   },
-  items: [shoppingListItemSchema],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  buyer: {
+      type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -35,6 +30,6 @@ const shoppingListSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }]
-}, { timestamps: true });
+});
 
 module.exports = mongoose.model('ShoppingList', shoppingListSchema);

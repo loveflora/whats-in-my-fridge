@@ -13,7 +13,7 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,8 +25,6 @@ const API_URL = 'http://192.168.20.8:5001';
 interface ShoppingItem {
   _id: string;
   name: string;
-  quantity: number;
-  unit: string;
   completed: boolean;
   listId: string;
   createdAt: string;
@@ -51,22 +49,11 @@ export default function ShoppingListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Item modal state
-  const [itemModalVisible, setItemModalVisible] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemQuantity, setNewItemQuantity] = useState('');
-  const [newItemUnit, setNewItemUnit] = useState('pieces');
-  const [editingItem, setEditingItem] = useState<ShoppingItem | null>(null);
-
-  // List modal state
-  const [listModalVisible, setListModalVisible] = useState(false);
-  const [newListName, setNewListName] = useState('');
-  const [editingList, setEditingList] = useState<ShoppingList | null>(null);
-
   // 쇼핑 리스트 수정 상태 관리
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState<string>('');
 
+  // const [completed, setCompleted] = useState<{ [key: string]: boolean }>({});
   const [favorites, setFavorites] = useState<{ [key: string]: boolean }>({});
   const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
 
@@ -85,7 +72,7 @@ export default function ShoppingListScreen() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/shopping/lists`, {
+      const response = await fetch(`${API_URL}/api/shopping/items`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -95,30 +82,30 @@ export default function ShoppingListScreen() {
       // console.log(response);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch shopping lists');
+        throw new Error('Failed to fetch shopping items');
       }
 
       const data = await response.json();
       setLists(data);
 
-      // Select the first list if available and no list is currently selected
+      // Select the first items if available and no items is currently selected
       if (data.length > 0 && !currentList) {
         setCurrentList(data[0]);
-        fetchItems(data[0]._id);
+        fetchItem(data[0]._id);
       } else if (currentList) {
-        // If we have a current list, refresh its items
-        fetchItems(currentList._id);
+        // If we have a current items, refresh its items
+        fetchItem(currentList._id);
       } else {
         setLoading(false);
       }
     } catch (error) {
-      console.error('Error fetching shopping lists:', error);
-      Alert.alert('Error', 'Failed to load shopping lists');
+      console.error('Error fetching shopping items:', error);
+      Alert.alert('Error', 'Failed to load shopping items');
       setLoading(false);
     }
   };
 
-  const fetchItems = async (listId: string) => {
+  const fetchItem = async (listId: string) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
@@ -134,14 +121,14 @@ export default function ShoppingListScreen() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch shopping items');
+        throw new Error('Failed to fetch shopping item');
       }
 
       const data = await response.json();
       setItems(data);
     } catch (error) {
-      console.error('Error fetching shopping items:', error);
-      Alert.alert('Error', 'Failed to load shopping items');
+      console.error('Error fetching shopping item:', error);
+      Alert.alert('Error', 'Failed to load shopping item');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -151,48 +138,13 @@ export default function ShoppingListScreen() {
   const handleRefresh = () => {
     setRefreshing(true);
     if (currentList) {
-      fetchItems(currentList._id);
+      fetchItem(currentList._id);
     } else {
       fetchLists();
     }
   };
 
-  const toggleItemStatus = async (id: string, completed: boolean) => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          completed: !completed,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update item status');
-      }
-
-      // Update local state
-      setItems(
-        items.map((item) =>
-          item._id === id ? { ...item, completed: !completed } : item
-        )
-      );
-    } catch (error) {
-      console.error('Error updating item status:', error);
-      Alert.alert('Error', 'Failed to update item status');
-    }
-  };
-
-  // const handleDeleteItem = async (id: string) => {
+  // const toggleItemStatus = async (id: string, completed: boolean) => {
   //   try {
   //     const token = await AsyncStorage.getItem('userToken');
   //     if (!token) {
@@ -201,162 +153,31 @@ export default function ShoppingListScreen() {
   //     }
 
   //     const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
-  //       method: 'DELETE',
+  //       method: 'PUT',
   //       headers: {
   //         Authorization: `Bearer ${token}`,
+  //         'Content-Type': 'application/json',
   //       },
+  //       body: JSON.stringify({
+  //         completed: !completed,
+  //       }),
   //     });
 
   //     if (!response.ok) {
-  //       throw new Error('Failed to delete item');
+  //       throw new Error('Failed to update item status');
   //     }
 
   //     // Update local state
-  //     setItems(items.filter((item) => item._id !== id));
+  //     setItems(
+  //       items.map((item) =>
+  //         item._id === id ? { ...item, completed: !completed } : item
+  //       )
+  //     );
   //   } catch (error) {
-  //     console.error('Error deleting item:', error);
-  //     Alert.alert('Error', 'Failed to delete item');
+  //     console.error('Error updating item status:', error);
+  //     Alert.alert('Error', 'Failed to update item status');
   //   }
   // };
-
-  const handleAddOrEditItem = async () => {
-    if (!newItemName || !newItemQuantity) {
-      Alert.alert('Error', 'Please enter item name and quantity');
-      return;
-    }
-
-    if (!currentList) {
-      Alert.alert('Error', 'No shopping list selected');
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
-
-      let response;
-      if (editingItem) {
-        // Update existing item
-        response = await fetch(`${API_URL}/api/shopping/items/${editingItem._id}`, {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: newItemName,
-            quantity: Number(newItemQuantity),
-            unit: newItemUnit,
-          }),
-        });
-      } else {
-        // Add new item
-        response = await fetch(`${API_URL}/api/shopping/items`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: newItemName,
-            quantity: Number(newItemQuantity),
-            unit: newItemUnit,
-            completed: false,
-            listId: currentList._id,
-          }),
-        });
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to ${editingItem ? 'update' : 'add'} shopping item`
-        );
-      }
-
-      // Clear form and close modal
-      setNewItemName('');
-      setNewItemQuantity('');
-      setNewItemUnit('pieces');
-      setEditingItem(null);
-      setItemModalVisible(false);
-
-      // Refresh the list
-      if (currentList) {
-        fetchItems(currentList._id);
-      }
-    } catch (error) {
-      console.error('Error adding/editing item:', error);
-      Alert.alert(
-        'Error',
-        `Failed to ${editingItem ? 'update' : 'add'} shopping item`
-      );
-    }
-  };
-
-  const handleAddOrEditList = async () => {
-    if (!newListName) {
-      Alert.alert('Error', 'Please enter a list name');
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
-
-      let response;
-      if (editingList) {
-        // Update existing list
-        response = await fetch(`${API_URL}/api/shopping/lists/${editingList._id}`, {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: newListName,
-          }),
-        });
-      } else {
-        // Add new list
-        response = await fetch(`${API_URL}/api/shopping/lists`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: newListName,
-          }),
-        });
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to ${editingList ? 'update' : 'add'} shopping list`
-        );
-      }
-
-      // Clear form and close modal
-      setNewListName('');
-      setEditingList(null);
-      setListModalVisible(false);
-
-      // Refresh the lists
-      await fetchLists();
-    } catch (error) {
-      console.error('Error adding/editing list:', error);
-      Alert.alert(
-        'Error',
-        `Failed to ${editingList ? 'update' : 'add'} shopping list`
-      );
-    }
-  };
 
   const handleDeleteList = async (id: string) => {
     try {
@@ -366,7 +187,7 @@ export default function ShoppingListScreen() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/shopping/lists/${id}`, {
+      const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -385,7 +206,7 @@ export default function ShoppingListScreen() {
       if (currentList && currentList._id === id) {
         if (updatedLists.length > 0) {
           setCurrentList(updatedLists[0]);
-          fetchItems(updatedLists[0]._id);
+          fetchItem(updatedLists[0]._id);
         } else {
           setCurrentList(null);
           setItems([]);
@@ -397,20 +218,7 @@ export default function ShoppingListScreen() {
     }
   };
 
-  // const openEditItemModal = (item: ShoppingItem) => {
-  //   setEditingItem(item);
-  //   setNewItemName(item.name);
-  //   setNewItemQuantity(item.quantity.toString());
-  //   setNewItemUnit(item.unit);
-  //   setItemModalVisible(true);
-  // };
-
-  // const openEditListModal = (list: ShoppingList) => {
-  //   setEditingList(list);
-  //   setNewListName(list.name);
-  //   setListModalVisible(true);
-  // };
-
+  //_ 즐겨찾기 토글 기능
   const toggleFavorite = async (id: string) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -423,7 +231,14 @@ export default function ShoppingListScreen() {
       updatedFavorites[id] = !updatedFavorites[id];
       setFavorites(updatedFavorites);
 
-      // 즐겨찾기 상태를 서버에 저장 (API가 있다고 가정)
+    // // 기존 아이템을 찾기
+    // const currentItem = lists.find((item) => item._id === id);
+    
+    // if (!currentItem) {
+    //   throw new Error('Item not found in local state');
+    //   }
+    // console.log("currentItem>>>>>>", currentItem)      
+
       const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
         method: 'PUT',
         headers: {
@@ -431,22 +246,22 @@ export default function ShoppingListScreen() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          favorite: updatedFavorites[id]
+          // name: currentItem.name,         // 기존 name 유지
+          // completed: currentItem.completed, // 기존 completed 유지
+          favorite: updatedFavorites[id]  // favorite 업데이트
         }),
       });
 
-    console.log("~~~~~~~~~~", response)
+         // Swipeable을 닫기
+         if (swipeableRefs.current[id]) {
+          swipeableRefs.current[id].close();
+        }
+
 
       if (!response.ok) {
         throw new Error('Failed to update favorite status');
       }
 
-      // 성공하면 로컬 상태 업데이트
-      setItems(
-        items.map((item) =>
-          item._id === id ? { ...item, favorite: updatedFavorites[id] } : item
-        )
-      );
     } catch (error) {
       console.error('Error updating favorite status:', error);
       Alert.alert('Error', 'Failed to update favorite status');
@@ -457,127 +272,134 @@ export default function ShoppingListScreen() {
     router.push(`/shopping-detail/${item._id}`);
   };
 
-  const [editingInlineItemId, setEditingInlineItemId] = useState<string | null>(null);
-  const [inlineItemName, setInlineItemName] = useState('');
-  const [inlineItemQuantity, setInlineItemQuantity] = useState('');
 
-  const startInlineEdit = (item: ShoppingItem) => {
-    setEditingInlineItemId(item._id);
-    setInlineItemName(item.name);
-    setInlineItemQuantity(item.quantity.toString());
-  };
-
-  const saveInlineEdit = async () => {
-    if (!editingInlineItemId || !inlineItemName || !inlineItemQuantity) {
-      setEditingInlineItemId(null);
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        router.replace('/auth/login');
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/api/shopping/items/${editingInlineItemId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: inlineItemName,
-          quantity: Number(inlineItemQuantity),
-        }),
+    const renderRightActions =(item: ShoppingItem) =>  (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, id: string) => {
+      const translateX = dragX.interpolate({
+        inputRange: [-160, 0],
+        outputRange: [0, 160],
+        extrapolate: 'clamp',
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update item');
-      }
-
-      // 성공하면 로컬 상태 업데이트
-      setItems(
-        items.map((item) =>
-          item._id === editingInlineItemId
-            ? { ...item, name: inlineItemName, quantity: Number(inlineItemQuantity) }
-            : item
-        )
-      );
-      setEditingInlineItemId(null);
-    } catch (error) {
-      console.error('Error updating item:', error);
-      Alert.alert('Error', 'Failed to update item');
-    }
-  };
-
-  const renderRightActions = (item: ShoppingItem) => (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
-    const trans = dragX.interpolate({
-      inputRange: [-100, 0],
-      outputRange: [0, 100],
-      extrapolate: 'clamp',
-    });
-
-    // 상세 버튼
-    const detailButton = () => (
-      <RectButton
-        style={[styles.swipeButton, { backgroundColor: '#3478F6' }]}
-        onPress={() => {
-          swipeableRefs.current[item._id]?.close();
-          navigateToDetail(item);
-        }}
-      >
-        <Ionicons name="information-circle-outline" size={24} color="#fff" />
-        <Text style={styles.swipeButtonText}>상세</Text>
-      </RectButton>
-    );
+    //? [보류] 상세 버튼 
+    // const detailButton = () => (
+    //   <RectButton
+    //     style={[styles.swipeButton, { backgroundColor: '#3478F6' }]}
+    //     onPress={() => {
+    //       swipeableRefs.current[item._id]?.close();
+    //       navigateToDetail(item);
+    //     }}
+    //   >
+    //     <Ionicons name="information-circle-outline" size={24} color="#fff" />
+    //     <Text style={styles.swipeButtonText}>상세</Text>
+    //   </RectButton>
+    // );
 
     // 즐겨찾기 버튼
     const favoriteButton = () => (
       <RectButton
-        style={[styles.swipeButton, { backgroundColor: favorites[item._id] ? '#FF9500' : '#FFD60A' }]}
+        style={[styles.swipeButton, { backgroundColor: '#FFD60A'}]}
         onPress={() => {
-          swipeableRefs.current[item._id]?.close();
+          // swipeableRefs.current[item._id]?.close();
           toggleFavorite(item._id);
         }}
       >
-        <Ionicons name={favorites[item._id] ? "star" : "star-outline"} size={24} color="#fff" />
-        <Text style={styles.swipeButtonText}>즐겨찾기</Text>
+        <FontAwesome name={favorites[item._id] ? "star" : "star-o"} size={20} color="#fff" />
+        {/* <Text style={styles.swipeButtonText}>즐겨찾기</Text> */}
       </RectButton>
     );
 
     // 삭제 버튼
     const deleteButton = () => (
       <RectButton
-        style={[styles.swipeButton, { backgroundColor: '#FF3B30' }]}
+        style={[styles.swipeButton, { backgroundColor: '#FF3B30'}]}
         onPress={() => {
-          swipeableRefs.current[item._id]?.close();
+          // swipeableRefs.current[item._id]?.close();
           handleDeleteList(item._id);
         }}
       >
         <Ionicons name="trash-outline" size={24} color="#fff" />
-        <Text style={styles.swipeButtonText}>삭제</Text>
+        {/* <Text style={styles.swipeButtonText}>삭제</Text> */}
       </RectButton>
     );
 
-    return (
-      <View style={{ flexDirection: 'row', width: 240 }}>
-        {/* {detailButton()} */}
-        {favoriteButton()}
-        {deleteButton()}
-      </View>
+    return ( 
+      <View style={{ flexDirection: 'row', width: 120 }}>
+    <Animated.View style={[styles.rightAction, { 
+      transform: [{ translateX: dragX.interpolate({
+        inputRange: [-120, 0],
+        outputRange: [0, 120], 
+        extrapolate: 'clamp',
+      }) }],
+    }]}>
+      {favoriteButton()}
+    </Animated.View>
+
+
+    <Animated.View style={[styles.rightAction, { 
+      transform: [{ translateX: dragX.interpolate({
+        inputRange: [-120, 0],
+        outputRange: [0, 60], 
+        extrapolate: 'clamp',
+      }) }],
+    }]}>
+      {deleteButton()}
+    </Animated.View>
+    </View>
+
+
     );
   };
 
+  //_ 빈 리스트 추가
+  const handleAddList = async () => {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      router.replace('/auth/login');
+      return;
+    }
+  
+    try {
+      const newList = { name: '', 
+        "completed": false,
+       "favorite": false }; // 빈 리스트 생성
+  
+      const response = await fetch(`${API_URL}/api/shopping/items`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newList),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to create list');
+      }
+  
+      const createdList = await response.json();
+  
+    // 리스트 목록 업데이트 - 새로운 리스트를 맨 뒤에 추가
+    setLists((prevLists) => [...prevLists, createdList]);
+  
+      // 자동으로 인라인 편집 모드로 전환
+      setEditingListId(createdList._id);
+      setEditingListName('');
+    } catch (error) {
+      console.error('Error creating list:', error);
+      Alert.alert('Error', 'Failed to create list');
+    }
+  };
 
-    // 리스트 인라인 편집 시작
+
+
+    //_ Edit 시작
     const startInlineListEdit = (list: ShoppingList) => {
       setEditingListId(list._id);
       setEditingListName(list.name);
     };
 
 
-    // 리스트 인라인 편집 완료
+    //_ Edit 완료
     const finishInlineListEdit = async () => {
       if (!editingListId || !editingListName.trim()) {
         setEditingListId(null);
@@ -591,7 +413,7 @@ export default function ShoppingListScreen() {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/shopping/lists/${editingListId}`, {
+        const response = await fetch(`${API_URL}/api/shopping/items/${editingListId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -624,39 +446,43 @@ export default function ShoppingListScreen() {
     };
 
 
-    // 리스트 완료 상태 토글
-    const toggleListCompleted = async (listId: string, currentStatus: boolean) => {
+    //_ 리스트 완료 상태 토글
+    const toggleListCompleted = async (id: string, currentStatus: boolean) => {
       try {
-        // 서버 API 호출 (필요한 경우)
 
-        // const token = await AsyncStorage.getItem('userToken');
-        // if (!token) {
-        //   router.replace('/auth/login');
-        //   return;
-        // }
-    
-        // const response = await fetch(`${API_URL}/api/shopping/lists/${listId}/completed`, {
-        //   method: 'PUT',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'Authorization': `Bearer ${token}`,
-        //   },
-        //   body: JSON.stringify({ completed: !currentStatus }),
-        // });
+        const token = await AsyncStorage.getItem('userToken');
+        if (!token) {
+          router.replace('/auth/login');
+          return;
+        }
 
-        // if (!response.ok) {
-        //   throw new Error('Failed to update list status');
-        // }
+
+    const response = await fetch(`${API_URL}/api/shopping/items/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        // name: currentItem.name,         // 기존 name 유지
+        completed:  !currentStatus, // 기존 completed 유지
+        // favorite: updatedFavorites[id]  // favorite 업데이트
+      }),
+    });
+
+        if (!response.ok) {
+          throw new Error('Failed to update list status');
+        }
 
 
         // 로컬 상태 업데이트
         const updatedLists = lists.map(list => 
-          list._id === listId ? { ...list, completed: !currentStatus } : list
+          list._id === id ? { ...list, completed: !currentStatus } : list
         );
         setLists(updatedLists);
 
         // 현재 선택된 리스트인 경우 currentList도 업데이트
-        if (currentList && currentList._id === listId) {
+        if (currentList && currentList._id === id) {
           setCurrentList({ ...currentList, completed: !currentStatus });
         }
       } catch (error) {
@@ -665,6 +491,12 @@ export default function ShoppingListScreen() {
       }
     };
 
+
+    const dragX = useRef(new Animated.Value(0)).current; // 스와이프 상태를 추적하는 값
+
+
+
+  //++ 개별 List Rendering 
   const renderItem = ({ item }: { item: ShoppingItem }) => {
     //; 수정 중
     if (editingListId === item._id ) {
@@ -686,6 +518,19 @@ export default function ShoppingListScreen() {
                       />
                     </TouchableOpacity>
 
+                    {/* <Animated.View
+        style={{
+          transform: [
+            {
+              translateX: dragX.interpolate({
+                inputRange: [-240, 0],
+                outputRange: [0, 180],  // 스와이프 범위에 맞게 텍스트 인풋의 위치를 이동시킴
+                extrapolate: 'clamp',   // 스와이프 범위 벗어나는 부분을 클램프
+              }),
+            },
+          ],
+        }}
+      > */}
       {/* text input */}
        <TextInput
                     style={[
@@ -698,6 +543,7 @@ export default function ShoppingListScreen() {
                     onBlur={finishInlineListEdit} // 포커스 해제 시 저장
                     onSubmitEditing={finishInlineListEdit}  // 엔터 키 입력 시 저장
                   />
+                    {/* </Animated.View> */}
         </View>
       );
     }
@@ -708,7 +554,7 @@ export default function ShoppingListScreen() {
         ref={(ref) => { swipeableRefs.current[item._id] = ref; }}
         renderRightActions={renderRightActions(item)}
         friction={1}
-        rightThreshold={40}
+        rightThreshold={1}
         overshootRight={false}
       >
         {/* <TouchableOpacity
@@ -741,269 +587,51 @@ export default function ShoppingListScreen() {
                         color={isDarkMode ? '#fff' : '#e2e2e2'}
                       />
                     </TouchableOpacity>
+
+            <View style={[styles.listItemTextContainer]}>
               <Text
                 style={[
                   styles.listItemText,
-                  currentList && currentList._id === item._id && styles.activeListItemText,
+                  // currentList && currentList._id === item._id && styles.activeListItemText,
                         item.completed && styles.completedListText,
                   isDarkMode && styles.darkText,
                 ]}
               >
-                {item.name} {favorites[item._id] && <Ionicons name="star" size={16} color="#FFD60A" />}
-              </Text>    
-            <Text
-              style={[
-                styles.itemDetails,
-                isDarkMode && styles.darkText,
-              ]}
-            >
-              {item.quantity} {item.unit}
-            </Text>
+                {item.name} 
+                 </Text>  
+                {favorites[item._id] && <FontAwesome name="star" size={20} color="#FFD60A" />}
+            </View>
           </View>
         </TouchableOpacity>
       </Swipeable>
     );
   };
 
-  const renderAddEditItemModal = () => {
-    return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={itemModalVisible}
-        onRequestClose={() => {
-          setItemModalVisible(false);
-          setEditingItem(null);
-          setNewItemName('');
-          setNewItemQuantity('');
-          setNewItemUnit('pieces');
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
-            <View style={styles.modalHeader}>
-              <Text
-                style={[
-                  styles.modalTitle,
-                  isDarkMode && styles.darkText,
-                ]}
-              >
-                {editingItem ? 'Edit Item' : 'Add New Item'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setItemModalVisible(false);
-                  setEditingItem(null);
-                  setNewItemName('');
-                  setNewItemQuantity('');
-                  setNewItemUnit('pieces');
-                }}
-              >
-                <Ionicons name="close" size={24} color={isDarkMode ? '#fff' : '#000'} />
-              </TouchableOpacity>
-            </View>
 
-            <TextInput
-              style={[
-                styles.input,
-                isDarkMode && styles.darkTextInput,
-              ]}
-              placeholder="Item Name"
-              value={newItemName}
-              onChangeText={setNewItemName}
-            />
 
-            <View style={styles.row}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.flex1,
-                  isDarkMode && styles.darkTextInput,
-                ]}
-                placeholder="Quantity"
-                value={newItemQuantity}
-                onChangeText={setNewItemQuantity}
-                keyboardType="numeric"
-              />
 
-              <View style={[styles.unitSelector, styles.flex1]}>
-                <TouchableOpacity
-                  style={[
-                    styles.unitButton,
-                    newItemUnit === 'pieces' && styles.selectedUnit,
-                  ]}
-                  onPress={() => setNewItemUnit('pieces')}
-                >
-                  <Text
-                    style={[
-                      styles.unitText,
-                      newItemUnit === 'pieces' && styles.selectedUnitText,
-                    ]}
-                  >
-                    pcs
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.unitButton,
-                    newItemUnit === 'grams' && styles.selectedUnit,
-                  ]}
-                  onPress={() => setNewItemUnit('grams')}
-                >
-                  <Text
-                    style={[
-                      styles.unitText,
-                      newItemUnit === 'grams' && styles.selectedUnitText,
-                    ]}
-                  >
-                    g
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.unitButton,
-                    newItemUnit === 'liters' && styles.selectedUnit,
-                  ]}
-                  onPress={() => setNewItemUnit('liters')}
-                >
-                  <Text
-                    style={[
-                      styles.unitText,
-                      newItemUnit === 'liters' && styles.selectedUnitText,
-                    ]}
-                  >
-                    L
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleAddOrEditItem}
-            >
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  isDarkMode && styles.darkText,
-                ]}
-              >
-                {editingItem ? 'Save Changes' : 'Add Item'}
-              </Text>
-            </TouchableOpacity> */}
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
-  const renderAddEditListModal = () => {
-    return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={listModalVisible}
-        onRequestClose={() => {
-          setListModalVisible(false);
-          setEditingList(null);
-          setNewListName('');
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
-            <View style={styles.modalHeader}>
-              <Text
-                style={[
-                  styles.modalTitle,
-                  isDarkMode && styles.darkText,
-                ]}
-              >
-                {editingList ? 'Edit List' : 'Create New Shopping List'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setListModalVisible(false);
-                  setEditingList(null);
-                  setNewListName('');
-                }}
-              >
-                <Ionicons name="close" size={24} color={isDarkMode ? '#fff' : '#000'} />
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={[
-                styles.input,
-                isDarkMode && styles.darkTextInput,
-              ]}
-              placeholder="List Name"
-              value={newListName}
-              onChangeText={setNewListName}
-            />
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleAddOrEditList}
-            >
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  isDarkMode && styles.darkText,
-                ]}
-              >
-                {editingList ? 'Save Changes' : 'Create List'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
+  //++ 전체 List Rendering
   const renderListSelector = () => {
     if (lists.length === 0) {
       return null;
     }
 
-    // // 쇼핑 리스트 수정 상태 관리
-    // const [editingListId, setEditingListId] = useState<string | null>(null);
-    // const [editingListName, setEditingListName] = useState<string>('');
-
-  
-
-
-    const renderRightActions = (progress, dragX, id) => {
-      const translateX = dragX.interpolate({
-        inputRange: [-80, 0],
-        outputRange: [0, 100],
-        extrapolate: 'clamp',
-      });
-    
-      return (
-        <Animated.View style={[styles.rightAction, { transform: [{ translateX }] }]}>
-          <TouchableOpacity onPress={() => {
-            Alert.alert(
-              'Delete List',
-              `Are you sure you want to delete this item?`,
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => handleDeleteList(id) },
-              ]
-            );
-          }}>
-            <Ionicons name="trash-outline" size={24} color="#fff" />
-          </TouchableOpacity>
-        </Animated.View>
-      );
-    };
-
     return (
       <View style={styles.listSelectorContainer}>
+      {/* 전체 List */}
         <FlatList
           data={lists}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
+          // 리스트 아래 빈 화면 클릭하면 리스트 추가
+          // ListFooterComponent={
+          //   <TouchableOpacity onPress={handleAddList} activeOpacity={0.7}>
+          //     <View style={styles.emptyContainer}>
+          //     </View>
+          //   </TouchableOpacity>
+          // }
         />
+
       </View>
     );
   };
@@ -1024,6 +652,7 @@ export default function ShoppingListScreen() {
     );
   }
 
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container, isDarkMode && styles.darkContainer]}>
@@ -1036,78 +665,23 @@ export default function ShoppingListScreen() {
           >
             Shopping Lists
           </Text>
+         
+         {/* 헤더 옆 추가 버튼 */}
           <TouchableOpacity
             style={styles.addListButton}
-            onPress={() => {
-              setEditingList(null);
-              setNewListName('');
-              setListModalVisible(true);
-            }}
+            onPress={handleAddList}
           >
             <Ionicons name="add-circle" size={24} color={isDarkMode ? '#fff' : '#3478F6'} />
           </TouchableOpacity>
         </View>
 
-        {renderListSelector()}
-
-
-        {currentList ? (
+        {lists.length > 0 ? (
           <>
-            <View style={styles.currentListHeader}>
-              <Text
-                style={[
-                  styles.currentListTitle,
-                  isDarkMode && styles.darkText,
-                ]}
-              >
-                {currentList.name}
-              </Text>
-              {/* <View style={styles.listActions}>
-                <TouchableOpacity
-                  style={styles.listAction}
-                  onPress={() => openEditListModal(currentList)}
-                >
-                  <Ionicons name="pencil" size={18} color={isDarkMode ? '#fff' : '#3478F6'} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.listAction}
-                  onPress={() => {
-                    Alert.alert(
-                      'Delete List',
-                      `Are you sure you want to delete "${currentList.name}"?`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Delete',
-                          style: 'destructive',
-                          onPress: () => handleDeleteList(currentList._id),
-                        },
-                      ]
-                    );
-                  }}
-                >
-                  <Ionicons name="trash" size={18} color="#FF0000" />
-                </TouchableOpacity>
-              </View> */}
-            </View>
-            
-            <View style={styles.fabContainer}>
-              <TouchableOpacity
-                style={styles.fab}
-                onPress={() => {
-                  setEditingItem(null);
-                  setNewItemName('');
-                  setNewItemQuantity('');
-                  setNewItemUnit('pieces');
-                  setItemModalVisible(true);
-                }}
-              >
-                <Ionicons name="add" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
+    {renderListSelector()}
+ 
+  </>
+          ) : (
+          <TouchableOpacity onPress={handleAddList} activeOpacity={0.7} style={styles.emptyContainer}>
             <Ionicons name="list-outline" size={64} color={isDarkMode ? '#555' : '#ccc'} />
             <Text
               style={[
@@ -1123,13 +697,10 @@ export default function ShoppingListScreen() {
                 isDarkMode && styles.darkText,
               ]}
             >
-              Tap the + button to create your first list
+           Click here to create your first list
             </Text>
-          </View>
+        </TouchableOpacity>
         )}
-
-        {renderAddEditItemModal()}
-        {renderAddEditListModal()}
       </View>
     </GestureHandlerRootView>
   );
@@ -1147,8 +718,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    paddingHorizontal: 16, // 좌우
+    padding: 16
   },
   title: {
     fontSize: 24,
@@ -1172,9 +742,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 10,
     borderRadius: 8,
-    marginLeft: 4,
+    marginLeft: 10,
   },
   darkListItem: {
     backgroundColor: '#2c2c2e',
@@ -1182,14 +751,55 @@ const styles = StyleSheet.create({
   darkActiveListItem: {
     backgroundColor: '#32325D',
   },
+// name, star
+  listItemTextContainer: {
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    width: '90%',
+    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: 1,
+    paddingRight: 10,
+  },
+  // name
   listItemText: {
     fontSize: 16,
     color: '#000',
+    paddingTop: 14,
     paddingHorizontal: 6,
     paddingVertical: 14,
-    width: "100%",
-    borderBottomColor: '#f0f0f0',
-    borderBottomWidth: 1,
+
+  },
+
+  swipeButton: {
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: "100%",
+    zIndex: 1
+  },
+  // swipeButtonText: {
+  //   color: '#FFFFFF',
+  //   fontSize: 12,
+  //   // marginTop: 4,
+  // },
+  // favoriteItemText: {
+  //   fontWeight: 'bold',
+  // },
+
+  leftAction: {
+    backgroundColor: '#4CAF50', // 녹색 (수정 버튼)
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+    borderRadius: 10,
+  },
+  rightAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    // marginVertical: 10
+    zIndex: 1
   },
   listItemActions: {
     flexDirection: 'row',
@@ -1305,37 +915,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    width: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  darkModalContent: {
-    backgroundColor: '#2c2c2c',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
+  // modalOverlay: {
+  //   flex: 1,
+  //   backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // modalContent: {
+  //   backgroundColor: '#fff',
+  //   borderRadius: 12,
+  //   padding: 16,
+  //   width: '85%',
+  //   shadowColor: '#000',
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.3,
+  //   shadowRadius: 4,
+  //   elevation: 5,
+  // },
+  // darkModalContent: {
+  //   backgroundColor: '#2c2c2c',
+  // },
+  // modalHeader: {
+  //   flexDirection: 'row',
+  //   justifyContent: 'space-between',
+  //   alignItems: 'center',
+  //   marginBottom: 16,
+  // },
+  // modalTitle: {
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  //   color: '#333',
+  // },
   input: {
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
@@ -1355,27 +965,7 @@ const styles = StyleSheet.create({
   flex1: {
     flex: 1,
   },
-  unitSelector: {
-    flexDirection: 'row',
-    marginLeft: 8,
-  },
-  unitButton: {
-    flex: 1,
-    padding: 12,
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    marginRight: 4,
-    borderRadius: 8,
-  },
-  selectedUnit: {
-    backgroundColor: '#3478F6',
-  },
-  unitText: {
-    color: '#333',
-  },
-  selectedUnitText: {
-    color: '#fff',
-  },
+
   saveButton: {
     backgroundColor: '#3478F6',
     borderRadius: 8,
@@ -1387,86 +977,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  swipeButton: {
-    width: 80,
-    height: '84%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  swipeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  favoriteItemText: {
-    fontWeight: 'bold',
-  },
+
 
   //; 수정
-  inlineEditContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  inlineEditInput: {
-    flex: 3,
-    paddingHorizontal: 10,
-    height: 40,
-    borderRadius: 5,
-    backgroundColor: '#f0f0f0',
-    marginRight: 10,
-  },
-  inlineEditQuantityContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inlineEditQuantityInput: {
-    width: 50,
-    height: 40,
-    borderRadius: 5,
-    backgroundColor: '#f0f0f0',
-    textAlign: 'center',
-    paddingHorizontal: 5,
-  },
-  inlineEditUnit: {
-    marginLeft: 5,
-  },
-  inlineEditButtons: {
-    flexDirection: 'row',
-    marginLeft: 10,
-  },
-  inlineEditSaveButton: {
-    paddingHorizontal: 5,
-  },
-  inlineEditCancelButton: {
-    paddingHorizontal: 5,
-  },
-  leftAction: {
-    backgroundColor: '#4CAF50', // 녹색 (수정 버튼)
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    height: '100%',
-    borderRadius: 10,
-  },
-  rightAction: {
-    backgroundColor: '#FF3B30', // 빨간색 (삭제 버튼)
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    height: '80%',
-    borderRadius: 10,
-    marginRight: 10
-  },
   listItemEditContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 11,
-    marginVertical: 4,
-    marginHorizontal: 9,
+    padding: 10,
+    // marginVertical: 4,
+    // marginHorizontal: 9,
     borderRadius: 8,
   },
   listItemEditInput: {
@@ -1479,6 +998,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
     borderBottomWidth: 1,
   },
+
+
   listItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
