@@ -12,6 +12,8 @@ import {
   RefreshControl,
   ScrollView,
   Animated,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -19,6 +21,7 @@ import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppContext } from '@/context/AppContext';
 import { GestureHandlerRootView, Swipeable, RectButton } from 'react-native-gesture-handler';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 
 const API_URL = 'http://192.168.20.8:5001';
 
@@ -497,7 +500,7 @@ export default function ShoppingListScreen() {
 
 
   //++ 개별 List Rendering 
-  const renderItem = ({ item }: { item: ShoppingItem }) => {
+  const renderItem = ({ item, drag, isActive }: { item: ShoppingItem, drag: any, isActive: boolean }) => {
     //; 수정 중
     if (editingListId === item._id ) {
       return (
@@ -550,6 +553,7 @@ export default function ShoppingListScreen() {
 
     //; 일반 항목
     return (
+    
       <Swipeable
         ref={(ref) => { swipeableRefs.current[item._id] = ref; }}
         renderRightActions={renderRightActions(item)}
@@ -557,25 +561,19 @@ export default function ShoppingListScreen() {
         rightThreshold={1}
         overshootRight={false}
       >
-        {/* <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => startInlineEdit(item)}
-          style={[styles.itemContainer, isDarkMode && styles.darkItemContainer]}
-        > */}
      <TouchableOpacity
               style={[
                 styles.listItem,
-                currentList && currentList._id === item._id && styles.activeListItem,
+                // currentList && currentList._id === item._id && styles.activeListItem,
                 isDarkMode && styles.darkListItem,
                 currentList && currentList._id === item._id && isDarkMode && styles.darkActiveListItem,
               ]}
               onPress={() => startInlineListEdit(item)} // 터치 시 수정 모드로 전환
-              // onLongPress={() => startInlineListEdit(item
+              onLongPress={drag} // 길게 누르면 드래그 시작
+              delayLongPress={150} // 길게 누르는 시간 설정 (ms)
+              activeOpacity={0.7}
+              disabled={isActive} // 드래그 중일 때는 다른 터치 이벤트 비활성화
               >
-          {/* <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => toggleItemStatus(item._id, item.completed)}
-          > */}
                 <View style={styles.listItemContent}>
                     <TouchableOpacity
                       style={styles.listItemCheckbox}
@@ -602,6 +600,7 @@ export default function ShoppingListScreen() {
                 {favorites[item._id] && <FontAwesome name="star" size={20} color="#FFD60A" />}
             </View>
           </View>
+
         </TouchableOpacity>
       </Swipeable>
     );
@@ -617,12 +616,17 @@ export default function ShoppingListScreen() {
     }
 
     return (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}> 
+
       <View style={styles.listSelectorContainer}>
       {/* 전체 List */}
-        <FlatList
+        <DraggableFlatList
           data={lists}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
+          onDragEnd={({ data }) => {
+            setLists(data); 
+        }}
           // 리스트 아래 빈 화면 클릭하면 리스트 추가
           // ListFooterComponent={
           //   <TouchableOpacity onPress={handleAddList} activeOpacity={0.7}>
@@ -633,6 +637,8 @@ export default function ShoppingListScreen() {
         />
 
       </View>
+      </TouchableWithoutFeedback>
+
     );
   };
 
