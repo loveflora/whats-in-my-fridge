@@ -13,7 +13,8 @@ import {
   ScrollView,
   Animated,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Dimensions
 } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -360,7 +361,6 @@ export default function ShoppingListScreen() {
       router.replace('/auth/login');
       return;
     }
-  
     try {
       const newList = { name: '', 
         "completed": false,
@@ -497,7 +497,22 @@ export default function ShoppingListScreen() {
 
     const dragX = useRef(new Animated.Value(0)).current; // 스와이프 상태를 추적하는 값
 
+    const { height } = Dimensions.get('window');
 
+  //_ lists의 길이에 따라 footerHeight 동적 계산
+  const getFooterHeight = () => {
+    // 리스트가 비어있거나 적을 때는 더 큰 공간을, 많을 때는 작은 공간을
+    const minFooterHeight = 100; // 최소 높이
+    const maxFooterHeight = height * 0.6; // 최대 높이 (화면의 60%)
+    
+    if (!lists || lists.length === 0) {
+      return maxFooterHeight;
+    }
+    
+    // 리스트 개수에 반비례하여 높이 계산
+    const calculatedHeight = maxFooterHeight - (lists.length * 20);
+    return Math.max(calculatedHeight, minFooterHeight);
+  };
 
   //++ 개별 List Rendering 
   const renderItem = ({ item, drag, isActive }: { item: ShoppingItem, drag: any, isActive: boolean }) => {
@@ -628,12 +643,15 @@ export default function ShoppingListScreen() {
             setLists(data); 
         }}
           // 리스트 아래 빈 화면 클릭하면 리스트 추가
-          // ListFooterComponent={
-          //   <TouchableOpacity onPress={handleAddList} activeOpacity={0.7}>
-          //     <View style={styles.emptyContainer}>
-          //     </View>
-          //   </TouchableOpacity>
-          // }
+          ListFooterComponent={
+            <TouchableOpacity onPress={handleAddList} activeOpacity={0.7} >
+               <View style={[
+              styles.footerEmptyContainer,
+              { height: getFooterHeight() }
+            ]}>
+              </View>
+            </TouchableOpacity>
+          }
         />
 
       </View>
@@ -739,6 +757,9 @@ const styles = StyleSheet.create({
   },
   listSelectorContainer: {
     flex: 1,
+  },
+  // list 있을 시, 아래 빈 공간
+  footerEmptyContainer : {
   },
   listSelectorContent: {
     paddingVertical: 5,
