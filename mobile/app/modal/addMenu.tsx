@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 const CATEGORIES = [
   'lunch',
@@ -115,7 +115,7 @@ export default function AddMenuScreen() {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.title}>새 메뉴 추가</Text>
-      1<View style={{ width: 40 }} />
+      <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.formContainer}>

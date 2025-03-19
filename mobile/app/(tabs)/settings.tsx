@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useAppContext } from '@/context/AppContext';
 
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 interface UserProfile {
   name: string;

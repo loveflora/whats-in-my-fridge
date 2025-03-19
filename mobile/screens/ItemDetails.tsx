@@ -16,7 +16,7 @@
 // import { Ionicons } from '@expo/vector-icons';
 // import DateTimePicker from '@react-native-community/datetimepicker';
 
-// const API_URL = 'http://192.168.20.8:5001';
+// import { API_URL } from "@/config/api"
 
 // const CATEGORIES = [
 //   'dairy',

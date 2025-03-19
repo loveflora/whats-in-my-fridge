@@ -38,7 +38,7 @@ interface CustomHeaderProps {
   navigation: any;
 }
 
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 export const CustomHeader: React.FC<CustomHeaderProps> = ({ title, navigation }) => {
   const { settings } = useAppContext();
@@ -282,7 +282,6 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({ title, navigation })
           }
         });
         
-        console.log("멤버 응답 상태 코드:", response.status);
         
         if (!response.ok) {
           console.error("멤버 API 오류, 상태코드:", response.status);
@@ -340,10 +339,10 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({ title, navigation })
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        console.log("\uc54c\ub9bc \uc751\ub2f5 \uc0c1\ud0dc \ucf54\ub4dc:", response.status);
+        // console.log("\uc54c\ub9bc \uc751\ub2f5 \uc0c1\ud0dc \ucf54\ub4dc:", response.status);
         
         const responseText = await response.text();
-        console.log("\uc54c\ub9bc \uc751\ub2f5 \ud14d\uc2a4\ud2b8 \uc2dc\uc791 \ubd80\ubd84:", responseText.substring(0, 100));
+        // console.log("\uc54c\ub9bc \uc751\ub2f5 \ud14d\uc2a4\ud2b8 \uc2dc\uc791 \ubd80\ubd84:", responseText.substring(0, 100));
         
         try {
           const data = JSON.parse(responseText);
@@ -356,11 +355,11 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({ title, navigation })
             setDefaultNotifications();
           }
         } catch (parseError) {
-          console.error("\uc54c\ub9bc JSON \ud30c\uc2f1 \uc624\ub958:", parseError);
+          // console.error("\uc54c\ub9bc JSON \ud30c\uc2f1 \uc624\ub958:", parseError);
           setDefaultNotifications();
         }
       } catch (fetchError) {
-        console.error("\uc54c\ub9bc API \ud638\ucd9c \uc624\ub958:", fetchError);
+        // console.error("\uc54c\ub9bc API \ud638\ucd9c \uc624\ub958:", fetchError);
         setDefaultNotifications();
       }
     } catch (error) {
@@ -370,7 +369,6 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({ title, navigation })
   };
   
   const setDefaultNotifications = () => {
-    // \uae30\ubcf8 \uc54c\ub9bc \uc0dd\uc131 (API \uc5f0\uacb0 \uc624\ub958 \uc2dc)
     const defaultNotifications: Notification[] = [
       {
         id: '1',

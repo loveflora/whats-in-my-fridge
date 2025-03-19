@@ -78,8 +78,6 @@ router.put('/items/:id', auth, async (req, res) => {
       ]
     });
 
-    // console.log("item>>>>>>", item, req.params.id)
-
     if (!item) {
       return res.status(404).json({ message: 'Item or item not found' });
     }
@@ -128,7 +126,7 @@ router.delete('/items/:id', auth, async (req, res) => {
 
 
 //.. Share shopping list with user
-router.post('/lists/:id/share', auth, async (req, res) => {
+router.post('/items/:id/share', auth, async (req, res) => {
   try {
     const list = await ShoppingList.findOne({
       _id: req.params.id,

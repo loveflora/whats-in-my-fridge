@@ -23,7 +23,7 @@ import { useAppContext } from '@/context/AppContext';
 import { GestureHandlerRootView, Swipeable, RectButton } from 'react-native-gesture-handler';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 interface ShoppingItem {
   _id: string;

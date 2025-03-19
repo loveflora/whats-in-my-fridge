@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
 import { useAppContext } from '@/context/AppContext';
 
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 interface MenuItem {
   _id: string;
@@ -518,11 +518,16 @@ export default function MenuScreen() {
       const data = await response.json();
       setMenus(data);
 
-      console.log("메뉴나와라>>>>>>>>", data)
+      // console.log("메뉴나와라>>>>>>>>", data)
       
+
+      //! 날짜 시차 때문인지 맞지 않음
       // 현재 날짜 선택
       const today = new Date().toISOString().split('T')[0];
       setSelectedDate(today);
+      
+      // console.log("오늘 날짜는???????????/", today)
+      
       
       // 메뉴를 날짜별로 정리
       const menuDateMap: {[key: string]: MenuItem[]} = {};
@@ -587,7 +592,7 @@ export default function MenuScreen() {
           ? new Date(menu.date).toISOString().split('T')[0] 
           : today;
       
-        console.log(`✅ 메뉴: ${menu.name}, 변환된 날짜: ${dateString}`); // 디버깅용 로그
+        // console.log(`✅ 메뉴: ${menu.name}, 변환된 날짜: ${dateString}`); // 디버깅용 로그
       
         // 2️⃣ 날짜별 데이터 저장
         if (!menuDateMap[dateString]) {

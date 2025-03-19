@@ -13,8 +13,7 @@ import {
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// const API_URL = 'http://localhost:5001'; // We'll move this to config later
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 interface LoginResponse {
   token: string;

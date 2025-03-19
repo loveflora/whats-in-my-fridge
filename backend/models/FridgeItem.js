@@ -3,44 +3,40 @@ const mongoose = require('mongoose');
 const fridgeItemSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    // required: true
   },
   quantity: {
     type: Number,
-    required: true,
+    // required: true,
     min: 0
   },
   unit: {
     type: String,
-    required: true
+    // required: true
   },
   expiryDate: {
     type: Date,
-    required: true
+    // required: true
+  },
+  favorite: {
+    type: Boolean,
+    default: false
+  },
+  completed: {
+    type: Boolean,
+    default: false
   },
   category: {
-    type: String,
-    required: true,
-    enum: ['dairy', 'meat', 'vegetables', 'fruits', 'beverages', 'condiments', 'other']
-  },
-  owner: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'Category',
+    default: null,  // 기본값을 null로 설정
+    required: false // 필수 입력이 아님
   },
-  fridge: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Fridge',
-    required: true
-  }
-}, { timestamps: true });
-
-const fridgeSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  items: [fridgeItemSchema],
+  // category: {
+  //   type: String,
+  //   required: true,
+  //   enum: ['dairy', 'meat', 'vegetables', 'fruits', 'beverages', 'condiments', 'other']
+  // },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -52,7 +48,8 @@ const fridgeSchema = new mongoose.Schema({
   }] // 냉장고 전체를 공유하는 사용자 목록
 }, { timestamps: true });
 
-module.exports = mongoose.model('Fridge', fridgeSchema);
+
+module.exports = mongoose.model('FridgeItem', fridgeItemSchema);
 
 
 // const mongoose = require('mongoose');

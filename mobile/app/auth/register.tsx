@@ -11,8 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 
-// const API_URL = 'http://localhost:5001'; 
-export const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');

@@ -21,7 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '@/context/AppContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const API_URL = 'http://192.168.20.8:5001';
+import { API_URL } from "@/config/api"
+
 
 interface Member {
   _id: string;

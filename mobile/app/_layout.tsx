@@ -16,6 +16,8 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import React from "react";
 import { AppProvider } from "@/context/AppContext";
 import { useAppContext } from "@/context/AppContext";
+import { CategoryProvider } from '@/context/CategoryContext';
+
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -112,6 +114,7 @@ function RootLayoutNav() {
   // }
 
   return (
+    
     <ThemeProvider value={actualTheme === "dark" ? DarkTheme : DefaultTheme}>
       <StatusBar style={actualTheme === "dark" ? "light" : "dark"} />
       <Stack>
@@ -136,10 +139,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
+    <CategoryProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProvider>
         <RootLayoutNav />
       </AppProvider>
     </GestureHandlerRootView>
+      </CategoryProvider>
   );
 }

@@ -16,14 +16,16 @@ export default function NotFoundScreen() {
     const checkAuthAndRedirect = async () => {
       try {
         const token = await AsyncStorage.getItem("userToken");
+
+        console.log("***********", token)
         
         if (token) {
-       // 로그인된 상태: 이전 페이지가 있으면 뒤로 가고, 없으면 fridge로 이동
-       if (window.history.length > 1) {
-        router.back();
-      } else {
-        router.replace('/(tabs)/fridge');
-      }
+          // 로그인된 상태: navigation canGoBack()을 사용하여 이전 화면 존재 여부 확인
+          if (navigation.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)/fridge');
+          }
         } else {
           // 로그인되지 않은 상태: 홈/로그인 화면으로 이동
           router.replace("/auth/login");
