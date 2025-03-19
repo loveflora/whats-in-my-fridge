@@ -111,12 +111,42 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     res.json(category);
-  } catch (err) {
-    console.error(err.message);
-    if (err.code === 11000) { // Duplicate key error
-      return res.status(400).json({ message: 'Another category with this name already exists' });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all items in a specific category
+router.get('/:id/items', auth, async (req, res) => {
+  try {
+    const categoryId = req.params.id;
+    
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: 'Invalid category ID format' });
     }
-    res.status(500).send('Server Error');
+
+    // Verify category exists and belongs to the user
+    const category = await Category.findOne({
+      _id: categoryId,
+      owner: req.user.id
+    });
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Find all fridge items with the specified category ID
+    const FridgeItem = require('../models/FridgeItem');
+    const items = await FridgeItem.find({
+      category: categoryId,
+      owner: req.user.id
+    }).sort({ updatedAt: -1 }); // Most recently updated first
+
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching category items:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

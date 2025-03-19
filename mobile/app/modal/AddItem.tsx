@@ -17,15 +17,6 @@
 
 // import { API_URL } from "@/config/api"
 
-// const CATEGORIES = [
-//   // 'dairy',
-//   // 'meat',
-//   // 'vegetables',
-//   // 'fruits',
-//   // 'beverages',
-//   // 'condiments',
-//   // 'other',
-// ];
 
 // const UNITS = [
 //   'pieces',

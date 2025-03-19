@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import {
   StyleSheet,
   Text,
@@ -12,24 +13,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  FlatList
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '@/context/AppContext';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+
+import { API_URL } from "@/config/api";
+import { useCategoryContext } from '@/context/CategoryContext';
+import { FridgeItem, Category } from '@/types/Fridge';
+import { CustomHeader } from '@/components/CustomHeader';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-import { API_URL } from "@/config/api"
-
-interface FridgeItem {
-  _id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  expiryDate: string;
-  category: string;
-}
+import { Calendar } from 'react-native-calendars';
+import { CATEGORIES } from '@/constants/Categories';
 
 export default function ItemDetailsScreen() {
   const params = useLocalSearchParams();
@@ -37,16 +35,28 @@ export default function ItemDetailsScreen() {
   const router = useRouter();
   const { settings } = useAppContext();
   const isDarkMode = settings.theme === 'dark';
+  const { categories, fetchCategories } = useCategoryContext();
   
   const [item, setItem] = useState<FridgeItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<FridgeItem>>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [editedQuantity, setEditedQuantity] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   useEffect(() => {
     fetchItemDetails();
+    fetchCategories(); // 카테고리 데이터 로드
   }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchItemDetails();
+    }, [id])
+  );
 
   const fetchItemDetails = async () => {
     try {
@@ -57,7 +67,7 @@ export default function ItemDetailsScreen() {
         return;
       }
 
-      console.log(`아이템 상세 정보 가져오기: ID=${id}`);
+      // console.log(`아이템 상세 정보 가져오기: ID=${id}`);
       const response = await fetch(`${API_URL}/api/fridge/items/${id}`, {
         method: 'GET',
         headers: {
@@ -82,7 +92,6 @@ export default function ItemDetailsScreen() {
     }
   };
 
-  // 수정 모달 열기 및 데이터 준비
   const handleEdit = () => {
     if (item) {
       setEditFormData({
@@ -96,7 +105,6 @@ export default function ItemDetailsScreen() {
     }
   };
 
-  // 아이템 수정 API 호출
   const updateItem = async () => {
     try {
       if (!editFormData.name || editFormData.quantity === undefined || !editFormData.unit || !editFormData.expiryDate || !editFormData.category) {
@@ -138,7 +146,6 @@ export default function ItemDetailsScreen() {
     }
   };
 
-  // 아이템 삭제 API 호출
   const deleteItem = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -171,7 +178,6 @@ export default function ItemDetailsScreen() {
     }
   };
 
-  // 삭제 확인
   const confirmDelete = () => {
     Alert.alert(
       '아이템 삭제',
@@ -184,7 +190,6 @@ export default function ItemDetailsScreen() {
     );
   };
 
-  // 유통기한까지 남은 일수 계산
   const getDaysUntilExpiry = (expiryDate: string) => {
     const today = new Date();
     const expiry = new Date(expiryDate);
@@ -193,21 +198,18 @@ export default function ItemDetailsScreen() {
     return diffDays;
   };
 
-  // 남은 일수에 따른 색상 반환
   const getExpiryColor = (daysUntilExpiry: number) => {
     if (daysUntilExpiry < 0) return '#FF0000';
     if (daysUntilExpiry <= 3) return '#FFA500';
     return '#4CAF50';
   };
 
-  // 유통기한 표시 텍스트
   const getExpiryText = (daysUntilExpiry: number) => {
     if (daysUntilExpiry < 0) return `만료됨 (${-daysUntilExpiry}일 지남)`;
     if (daysUntilExpiry === 0) return '오늘 만료';
     return `${daysUntilExpiry}일 남음`;
   };
 
-  // 날짜 포맷팅
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ko-KR', {
@@ -221,6 +223,130 @@ export default function ItemDetailsScreen() {
     const currentDate = selectedDate || new Date();
     setShowDatePicker(false);
     setEditFormData({...editFormData, expiryDate: currentDate.toISOString().split('T')[0]});
+  };
+
+  // 개별 필드 수정 관련 함수들
+  const startEditing = (field: string) => {
+    setEditingField(field);
+    
+    if (field === 'quantity' && item) {
+      setEditedQuantity(item.quantity.toString());
+    } else if (field === 'category' && item) {
+      setSelectedCategory(item.category);
+      setShowCategoryPicker(true);
+    } else if (field === 'expiryDate') {
+      setShowDatePicker(true);
+    }
+  };
+
+  // 수량 변경 저장
+  const saveQuantity = async () => {
+    if (!item || !editedQuantity) return;
+    
+    try {
+      const quantity = parseInt(editedQuantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        Alert.alert('오류', '유효한 수량을 입력해주세요.');
+        return;
+      }
+      
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) throw new Error('인증 토큰이 없습니다.');
+      // 
+      const response = await fetch(`${API_URL}/api/fridge/items/${item._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...item,
+          quantity: quantity
+        })
+      });
+      
+      if (!response.ok) throw new Error('수량 업데이트에 실패했습니다.');
+      
+      // 성공적으로 업데이트되면 아이템 정보 다시 불러오기
+      setItem({...item, quantity: quantity});
+      setEditingField(null);
+    } catch (error) {
+      console.error('수량 업데이트 오류:', error);
+      Alert.alert('오류', '수량 업데이트에 실패했습니다.');
+    }
+  };
+
+  // 카테고리 변경 저장
+  const saveCategory = async (categoryId: string | undefined) => {
+    if (!item) return;
+    
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) throw new Error('인증 토큰이 없습니다.');
+      // 
+      const response = await fetch(`${API_URL}/api/fridge/items/${item._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...item,
+          category: categoryId
+        })
+      });
+      
+      if (!response.ok) throw new Error('카테고리 업데이트에 실패했습니다.');
+      
+      // 성공적으로 업데이트되면 아이템 정보 다시 불러오기
+      setItem({...item, category: categoryId});
+      setEditingField(null);
+      setShowCategoryPicker(false);
+      // 성공 메시지
+      // Alert.alert('성공', '카테고리가 업데이트되었습니다.');
+    } catch (error) {
+      console.error('카테고리 업데이트 오류:', error);
+      Alert.alert('오류', '카테고리 업데이트에 실패했습니다.');
+    }
+  };
+
+  // 유통기한 변경 저장
+  const saveExpiryDate = async (date: Date) => {
+    if (!item) return;
+    
+    try {
+      const formattedDate = date.toISOString().split('T')[0];
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) throw new Error('인증 토큰이 없습니다.');
+      // 
+      const response = await fetch(`${API_URL}/api/fridge/items/${item._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...item,
+          expiryDate: formattedDate
+        })
+      });
+      
+      if (!response.ok) throw new Error('유통기한 업데이트에 실패했습니다.');
+      
+      // 성공적으로 업데이트되면 아이템 정보 다시 불러오기
+      setItem({...item, expiryDate: formattedDate});
+      setEditingField(null);
+    } catch (error) {
+      console.error('유통기한 업데이트 오류:', error);
+      Alert.alert('오류', '유통기한 업데이트에 실패했습니다.');
+    }
+  };
+
+  // 카테고리 이름 가져오기
+  const getCategoryName = (categoryId: string | undefined) => {
+    if (!categoryId) return '';
+    const category = categories.find(c => c._id === categoryId);
+    return category ? category.name : categoryId;
   };
 
   if (loading) {
@@ -251,6 +377,7 @@ export default function ItemDetailsScreen() {
 
   return (
     <View style={[styles.container, isDarkMode && styles.darkContainer]}>
+      <CustomHeader/>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -259,11 +386,9 @@ export default function ItemDetailsScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={isDarkMode ? "#fff" : "#000"} />
           </TouchableOpacity>
-          <Text style={[styles.title, isDarkMode && styles.darkText]}>{item.name}</Text>
+          <Text style={[styles.title, isDarkMode && styles.darkText]} 
+          numberOfLines={1}>{item.name}</Text>
           <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleEdit}>
-            <Ionicons name="create-outline" size={24} color={isDarkMode ? '#fff' : '#333'} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={confirmDelete}>
             <Ionicons name="trash-outline" size={24} color={isDarkMode ? '#fff' : '#333'} />
           </TouchableOpacity>
@@ -271,152 +396,135 @@ export default function ItemDetailsScreen() {
         </View>
 
         <View style={styles.content}>
-          <View style={styles.section}>
+          <View style={[styles.section, isDarkMode && styles.darkSection]}>
             <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>기본 정보</Text>
-            <View style={styles.infoRow}>
+            
+            {/* 수량 정보 */}
+            <TouchableOpacity style={styles.infoRow} onPress={() => startEditing('quantity')}>
               <Text style={[styles.infoLabel, isDarkMode && styles.darkText]}>수량:</Text>
-              <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>{item.quantity} {item.unit}</Text>
-            </View>
+              {editingField === 'quantity' ? (
+                <View style={styles.editFieldContainer}>
+                  <TextInput
+                    style={[styles.editInput, isDarkMode && styles.darkText]}
+                    value={editedQuantity}
+                    onChangeText={setEditedQuantity}
+                    keyboardType="numeric"
+                    autoFocus
+                  />
+                  <Text style={[styles.infoValue, isDarkMode && styles.darkText]}> {item?.unit}</Text>
+                  <TouchableOpacity style={styles.saveButton} onPress={saveQuantity}>
+                    <Ionicons name="checkmark" size={20} color="#4CAF50" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>
+                  {item?.quantity} {item?.unit}
+                </Text>
+              )}
+            </TouchableOpacity>
+            
+            {/* 카테고리 정보 */}
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isDarkMode && styles.darkText]}>카테고리:</Text>
-              <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>{item.category}</Text>
+              <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>
+                {getCategoryName(item?.category)}
+              </Text>
             </View>
+            
+            {/* 카테고리 선택 영역 */}
+            <ScrollView horizontal contentContainerStyle={styles.tagContainer}>
+              {CATEGORIES.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.tagItem,
+                    item?.category === category && styles.selectedTagItem
+                  ]}
+                  onPress={() => saveCategory(category)}
+                >
+                  <Text style={[styles.tagText, isDarkMode && styles.darkTagText]}>
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            {/* 사용자 정의 카테고리 */}
+            {categories.length > 0 && (
+              <View style={[styles.tagContainer, { marginTop: 10 }]}>
+                {categories.map((category) => (
+                  <TouchableOpacity
+                    key={category._id}
+                    style={[
+                      styles.categoryItem,
+                      item?.category === category._id && styles.selectedCategoryItem
+                    ]}
+                    onPress={() => saveCategory(category._id)}
+                  >
+                    <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>
+                      <Ionicons name={category.icon as any} size={20} color="#fff" />
+                    </View>
+                    <Text style={[styles.categoryText, isDarkMode && styles.darkText]}>
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
-          <View style={styles.section}>
+          <View style={[styles.section, isDarkMode && styles.darkSection]}>
             <Text style={[styles.sectionTitle, isDarkMode && styles.darkText]}>유통기한</Text>
-            <View style={styles.infoRow}>
+            
+            {/* 유통기한 정보 */}
+            <TouchableOpacity style={styles.infoRow} onPress={() => startEditing('expiryDate')}>
               <Text style={[styles.infoLabel, isDarkMode && styles.darkText]}>날짜:</Text>
-              <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>{formatDate(item.expiryDate)}</Text>
-            </View>
+              <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>
+                {formatDate(item?.expiryDate || '')}
+              </Text>
+            </TouchableOpacity>
+            
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isDarkMode && styles.darkText]}>상태:</Text>
-              <Text style={[styles.expiryStatus, { color: expiryColor }]}>
-                {getExpiryText(daysUntilExpiry)}
+              <Text 
+                style={[
+                  styles.infoValue, 
+                  { color: getExpiryColor(getDaysUntilExpiry(item?.expiryDate || '')) }
+                ]}
+              >
+                {getExpiryText(getDaysUntilExpiry(item?.expiryDate || ''))}
               </Text>
             </View>
           </View>
         </View>
-      </ScrollView>
-
-      {/* <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.editButton]}
-          onPress={handleEdit}
+        
+        {/* 날짜 선택기 */}
+        <Modal
+          visible={showDatePicker}
+          transparent={true}
+          animationType="slide"
         >
-          <Ionicons name="create-outline" size={20} color="#fff" />
-          <Text style={styles.buttonText}>수정</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.deleteButton]}
-          onPress={confirmDelete}
-        >
-          <Ionicons name="trash-outline" size={20} color="#fff" />
-          <Text style={styles.buttonText}>삭제</Text>
-        </TouchableOpacity>
-      </View> */}
-
-      {/* 아이템 수정 모달 */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalContainer}
-        >
-          <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>아이템 수정</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={24} color={isDarkMode ? "#fff" : "#000"} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.formContainer}>
-              <Text style={[styles.formLabel, isDarkMode && styles.darkText]}>이름</Text>
-              <TextInput
-                style={[styles.input, isDarkMode && styles.darkInput]}
-                value={editFormData.name?.toString()}
-                onChangeText={(text) => setEditFormData({...editFormData, name: text})}
-                placeholder="아이템 이름"
-                placeholderTextColor={isDarkMode ? "#666" : "#999"}
+          <View style={{flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+            <View style={{backgroundColor: 'white', margin: 20, padding: 20, borderRadius: 10}}>
+              <Calendar
+                onDayPress={day => {
+                  saveExpiryDate(new Date(day.timestamp));
+                  setShowDatePicker(false);
+                }}
+                markedDates={{
+                  [item?.expiryDate ? formatDate(item.expiryDate) : formatDate(new Date())]: {selected: true}
+                }}
               />
-
-              <Text style={[styles.formLabel, isDarkMode && styles.darkText]}>카테고리</Text>
-              <TextInput
-                style={[styles.input, isDarkMode && styles.darkInput]}
-                value={editFormData.category?.toString()}
-                onChangeText={(text) => setEditFormData({...editFormData, category: text})}
-                placeholder="카테고리"
-                placeholderTextColor={isDarkMode ? "#666" : "#999"}
-              />
-
-              <View style={styles.row}>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.formLabel, isDarkMode && styles.darkText]}>수량</Text>
-                  <TextInput
-                    style={[styles.input, isDarkMode && styles.darkInput]}
-                    value={editFormData.quantity?.toString()}
-                    onChangeText={(text) => setEditFormData({...editFormData, quantity: parseFloat(text) || 0})}
-                    keyboardType="numeric"
-                    placeholder="수량"
-                    placeholderTextColor={isDarkMode ? "#666" : "#999"}
-                  />
-                </View>
-
-                <View style={styles.halfInput}>
-                  <Text style={[styles.formLabel, isDarkMode && styles.darkText]}>단위</Text>
-                  <TextInput
-                    style={[styles.input, isDarkMode && styles.darkInput]}
-                    value={editFormData.unit?.toString()}
-                    onChangeText={(text) => setEditFormData({...editFormData, unit: text})}
-                    placeholder="단위"
-                    placeholderTextColor={isDarkMode ? "#666" : "#999"}
-                  />
-                </View>
-              </View>
-
-              <Text style={[styles.formLabel, isDarkMode && styles.darkText]}>유통기한</Text>
-              <TouchableOpacity
-                style={[styles.dateButton, isDarkMode && styles.darkInput]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={[styles.dateButtonText, isDarkMode && styles.darkText]}>
-                  {editFormData.expiryDate ? formatDate(editFormData.expiryDate) : '날짜 선택'}
-                </Text>
-                <Ionicons name="calendar" size={20} color={isDarkMode ? "#fff" : "#000"} />
-              </TouchableOpacity>
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={editFormData.expiryDate ? new Date(editFormData.expiryDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onDateChange}
-                />
-              )}
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
               <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]} 
-                onPress={() => setEditModalVisible(false)}
+                style={{marginTop: 10, alignSelf: 'center'}} 
+                onPress={() => setShowDatePicker(false)}
               >
-                <Text style={styles.modalButtonText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]} 
-                onPress={updateItem}
-              >
-                <Text style={styles.modalButtonText}>저장</Text>
+                <Text style={{color: 'blue', fontSize: 16}}>취소</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </Modal>
+      </ScrollView>
     </View>
   );
 }
@@ -424,62 +532,63 @@ export default function ItemDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
   },
   darkContainer: {
     backgroundColor: '#121212',
+  },
+  scrollView: {
+    flex: 1,
   },
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scrollView: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingTop: 60,
-    position: 'relative',
+  },
+  darkHeader: {
+    backgroundColor: '#1e1e1e',
+  },
+  backIcon: {
+    padding: 5,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    flex: 1,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
   headerButtons: {
     flexDirection: 'row',
   },
   headerButton: {
-    padding: 4,
-    marginLeft: 16,
-  },
-  backIcon: {
-    marginRight: 16,
-    zIndex: 1
-  },
-  title: {
-    textAlign: "center",
-    position: 'absolute', // 제목을 가운데에 위치시키기 위한 절대 위치
-    left: 0,
-    right: 0,
-    bottom: 16,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  darkText: {
-    color: '#fff',
+    padding: 8,
+    marginLeft: 8,
   },
   content: {
     padding: 16,
   },
   section: {
     marginBottom: 24,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#fff',
+    borderRadius: 10,
     padding: 16,
-    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  darkSection: {
+    backgroundColor: '#2a2a2a',
   },
   sectionTitle: {
     fontSize: 18,
@@ -489,67 +598,45 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   infoLabel: {
-    flex: 1,
+    width: 80,
     fontSize: 16,
     color: '#666',
+    fontWeight: '500',
   },
   infoValue: {
-    flex: 2,
     fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
+    color: '#333',
+    flex: 1,
   },
   expiryStatus: {
-    flex: 2,
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  button: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 8,
+    fontWeight: '500',
   },
   editButton: {
-    backgroundColor: '#3478F6',
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
   },
   deleteButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#F44336',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  errorText: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 16,
-  },
-  backButton: {
-    marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#3478F6',
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
     fontWeight: 'bold',
   },
-  // 모달 스타일
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -558,94 +645,126 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '90%',
-    maxHeight: '80%',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderRadius: 10,
+    padding: 16,
+    maxHeight: '80%',
   },
   darkModalContent: {
-    backgroundColor: '#1e1e1e',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: '#2a2a2a',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
-  },
-  formContainer: {
-    marginBottom: 20,
-  },
-  formLabel: {
-    fontSize: 16,
-    marginBottom: 5,
+    marginBottom: 16,
+    textAlign: 'center',
     color: '#000',
   },
   input: {
-    height: 45,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 10,
-    backgroundColor: '#f9f9f9',
-    color: '#000',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    fontSize: 16,
   },
   darkInput: {
     borderColor: '#444',
-    backgroundColor: '#333',
     color: '#fff',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    width: '48%',
-  },
-  dateButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 45,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 10,
-    backgroundColor: '#f9f9f9',
-  },
-  dateButtonText: {
-    color: '#000',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#333',
   },
   saveButton: {
-    backgroundColor: '#3478F6',
+    backgroundColor: '#4CAF50',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
   },
-  modalButtonText: {
+  darkText: {
     color: '#fff',
-    fontWeight: 'bold',
+  },
+  editFieldContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  editInput: {
+    flex: 1,
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginRight: 5,
+    fontSize: 16,
+    color: '#333',
+  },
+  saveButton: {
+    padding: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 5,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedCategoryItem: {
+    backgroundColor: '#f5f5f5',
+  },
+  categoryIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  categoryText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalCloseButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseButtonText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  // category tag
+  tagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  tagItem: {
+    backgroundColor: '#ddd',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    margin: 5,
+  },
+  selectedTagItem: {
+    backgroundColor: '#4CAF50', // Or any color to show selection
+  },
+  tagText: {
+    color: '#000',
+    fontSize: 14,
+  },
+  darkTagText: {
+    color: '#fff',
   },
 });

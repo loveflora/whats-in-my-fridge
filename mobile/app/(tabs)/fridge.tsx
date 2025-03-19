@@ -13,7 +13,8 @@ import {
   ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
-  Dimensions
+  Dimensions,
+  Modal
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
@@ -29,6 +30,8 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Search from "@/components/fridge/Search"
 import { useCategoryContext } from '@/context/CategoryContext';
 import { FridgeItem, Category } from '@/types/Fridge';
+import { Calendar } from 'react-native-calendars';
+
 
 // config/api.js에서 사용하는 URL을 여기서도 동일하게 사용하기 위해 API_BASE_URL 가져오기
 import { API_URL } from '../../config/api';
@@ -73,36 +76,47 @@ export default function FridgeScreen() {
   const [favorites, setFavorites] = useState<{ [key: string]: boolean }>({});
   const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
   const [currentList, setCurrentList] = useState<FridgeItem | null>(null);
+  
+  // 날짜 선택기 상태
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
+  // 유통기한 업데이트 함수
+  const saveExpiryDate = async (date: Date) => {
+    if (!selectedItemId) return;
+    
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', '로그인이 필요합니다.');
+        return;
+      }
 
+      const response = await fetch(`${API_URL}/api/fridge/${selectedItemId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ expiryDate: date.toISOString().split('T')[0] })
+      });
 
-  // // API URL 테스트 함수
-  // const testApiConnection = async () => {
-  //   for (const url of API_URLS) {
-  //     try {
-  //       console.log(`Testing connection to ${url}...`);
-        
-  //       // AbortController를 사용하여 타임아웃 구현
-  //       const controller = new AbortController();
-  //       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 타임아웃
-        
-  //       const response = await fetch(`${url}/api/health`, {
-  //         method: 'HEAD',
-  //         signal: controller.signal
-  //       });
-        
-  //       clearTimeout(timeoutId);
-        
-  //       if (response.ok) {
-  //         API_URL = url;
-  //         return true;
-  //       }
-  //     } catch (err) {
-  //       console.log(`Connection to ${url} failed:`, err);
-  //     }
-  //   }
-  //   return false;
-  // };
+      if (response.ok) {
+        // 성공적으로 업데이트 된 경우 아이템 목록 새로고침
+        fetchItems();
+        Alert.alert('성공', '유통기한이 업데이트되었습니다.');
+      } else {
+        const errorData = await response.json();
+        Alert.alert('오류', errorData.message || '유통기한 업데이트 실패');
+      }
+    } catch (error) {
+      console.error('유통기한 업데이트 오류:', error);
+      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+    } finally {
+      setShowDatePicker(false);
+      setSelectedItemId(null);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -405,11 +419,8 @@ export default function FridgeScreen() {
         style={[styles.swipeButton, { backgroundColor: '#34C759' }]}  
         onPress={() => {
           swipeableRefs.current[item._id]?.close();
-          setModalVisible(true);
-          setEditFormData({
-            ...item,
-            expiryDate: item.expiryDate ? new Date(item.expiryDate) : new Date()
-          });
+          setSelectedItemId(item._id);
+          setShowDatePicker(true);
         }}
       >
         <Ionicons name="calendar-outline" size={24} color="#fff" />
@@ -424,7 +435,7 @@ export default function FridgeScreen() {
           navigateToDetail(item);
         }}
       >
-        <Ionicons name="information-circle-outline" size={24} color="#fff" />
+        <Ionicons name="create" size={24} color="#fff" />
       </RectButton>
     );
 
@@ -460,80 +471,16 @@ export default function FridgeScreen() {
     );
   };
 
-    const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-    const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
-    // const [expiryDate, setExpiryDate] = useState(item.expiryDate || new Date().toISOString().split('T')[0]);
-
-    const handleConfirm = async (date) => {
-      const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
-      item.expiryDate = formattedDate; // item의 expiryDate 변경
-      try {
-                const token = await AsyncStorage.getItem('userToken');
-                if (!token) {
-                 router.replace('/auth/login');
-                return;
-              }
-        
-               // Update the expiry date in the backend
-              const response = await fetch(`${API_URL}/api/fridge/items/${item._id}`, {
-                  method: 'PUT',
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    expiryDate: formattedDate
-                  }),
-                });
-        
-                if (!response.ok) {
-                  throw new Error('Failed to update expiry date');
-                }
-        
-              // Update the local state
-                const updatedItems = items.map(listItem => 
-                  listItem._id === item._id 
-                    ? { ...listItem, expiryDate: formattedDate } 
-                    : listItem
-                );
-                setItems(updatedItems);
-        
-                // If this item is also in search results, update it there too
-                if (isSearching && searchResults.length > 0) {
-                  const updatedSearchResults = searchResults.map(searchItem => 
-                    searchItem._id === item._id 
-                      ? { ...searchItem, expiryDate: formattedDate } 
-                    : searchItem
-                );
-                  setSearchResults(updatedSearchResults);
-                }
-              } catch (error) {
-                console.error('Error updating expiry date:', error);
-                Alert.alert('Error', 'Failed to update expiry date');
-              }
-        
-        
-            };
-  
-    const hideDatePicker = () => setDatePickerVisibility(false);
-
-    const [showDatePicker, setShowDatePicker] = useState(false);
-
-
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
   const onDateChange = (event: any, selectedDate: any) => {
     const currentDate = selectedDate || new Date();
     setShowDatePicker(false);
-    // setEditFormData({...editFormData, expiryDate: currentDate.toISOString().split('T')[0]});
+  };
+
+  const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const { height } = Dimensions.get('window');
@@ -559,8 +506,8 @@ export default function FridgeScreen() {
     const expiryColor = getExpiryColor(daysUntilExpiry);
 
     const showDatePicker = () => {
-          setCurrentEditingItemId(item._id);
-            setDatePickerVisibility(true);
+          setSelectedItemId(item._id);
+            setShowDatePicker(true);
           };
 
     // hideDatePicker();
@@ -601,7 +548,7 @@ export default function FridgeScreen() {
 
     //; 일반 항목
     return (
-    
+    <>
       <Swipeable
         ref={(ref) => { swipeableRefs.current[item._id] = ref; }}
         renderRightActions={renderRightActions(item)}
@@ -643,6 +590,7 @@ export default function FridgeScreen() {
                         item.completed && styles.completedListText,
                   isDarkMode && styles.darkText,
                 ]}
+                numberOfLines={1}
               >
                 {item.name} 
                  </Text>  
@@ -661,7 +609,7 @@ export default function FridgeScreen() {
 
 
 {/* expiry date */}
-  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+  <TouchableOpacity onPress={() => showDatePicker()}>
                 <Text style={[styles.expiryText, item.completed && styles.completedListText, { color: expiryColor }]}>
             {daysUntilExpiry < 0
             ? 'Expired'
@@ -671,7 +619,7 @@ export default function FridgeScreen() {
          </Text>
          </TouchableOpacity>
 
-         {showDatePicker && (
+         {/* {showDatePicker && (
                 <DateTimePicker
                   // value={editFormData.expiryDate ? new Date(editFormData.expiryDate) : new Date()}
                   value={new Date()}
@@ -679,7 +627,7 @@ export default function FridgeScreen() {
                   display="default"
                   onChange={onDateChange}
                 />
-              )}
+              )} */}
 
 
                  {/* favorites */}
@@ -689,6 +637,39 @@ export default function FridgeScreen() {
           </View>
         </TouchableOpacity>
       </Swipeable>
+      
+      <Modal
+  visible={showDatePicker}
+  transparent={true}
+  animationType="slide"
+>
+  <View style={{flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+    <View style={{backgroundColor: 'white', margin: 20, padding: 20, borderRadius: 10}}>
+      <Calendar
+        onDayPress={day => {
+          saveExpiryDate(new Date(day.timestamp));
+        }}
+        markedDates={{
+          [selectedItemId && items.find(i => i._id === selectedItemId)?.expiryDate 
+            ? formatDate(new Date(items.find(i => i._id === selectedItemId)!.expiryDate!)) 
+            : formatDate(new Date())]: {selected: true}
+        }}
+      />
+      <TouchableOpacity 
+        style={{marginTop: 10, alignSelf: 'center'}} 
+        onPress={() => {
+          setShowDatePicker(false);
+          setSelectedItemId(null);
+        }}
+      >
+        <Text style={{color: 'blue', fontSize: 16}}>취소</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+      
+      
+      </>
     );
   };
 
@@ -723,7 +704,6 @@ export default function FridgeScreen() {
           </TouchableOpacity>
         }
       />
-
       </View>
       </TouchableWithoutFeedback>
 
@@ -755,7 +735,7 @@ export default function FridgeScreen() {
   //         <Text style={[styles.expiryText, { color: expiryColor }]}>
   //           {daysUntilExpiry < 0
   //             ? 'Expired'
-  //             : daysUntilExpiry === 0
+  //           : daysUntilExpiry === 0
   //             ? 'Expires today'
   //             : `Expires in ${daysUntilExpiry} days`}
   //         </Text>
@@ -827,11 +807,12 @@ export default function FridgeScreen() {
       </View>
       <Text style={[styles.categoryName, isDarkMode && styles.darkText]}
         numberOfLines={2} // 두 줄로 제한
-        // ellipsizeMode="tail" // 끝에 "..." 추가
       >
         {item.name}
       </Text>
-      <Text style={[styles.categoryNumber, isDarkMode && styles.darkText]}>10</Text>
+      <Text style={[styles.categoryNumber, {color: item.color}, isDarkMode && styles.darkText]}>
+        {items.filter(fridgeItem => fridgeItem.category?._id === item._id || fridgeItem.category === item._id).length}
+      </Text>
       {/* 삭제 버튼 */}
       {/* <TouchableOpacity
         style={styles.categoryDeleteButton}
@@ -1123,7 +1104,7 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     flexDirection: 'row',
-    // justifyContent: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     marginBottom: 12,
@@ -1144,12 +1125,11 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 16,
-    // fontWeight: 'bold',
+    fontWeight: 'bold',
     color: '#333',
-    overflow: 'hidden', // 오버플로우 숨기기
-    textOverflow: 'ellipsis', // 텍스트 끝에 "..." 표시
-    width: 100,
-    numberOfLines: 2, // 두 줄로 제한
+    overflow: 'hidden', 
+    width: 80,
+  
   },
  categoryNumber : {
   fontSize: 20,
@@ -1261,6 +1241,10 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingHorizontal: 6,
     paddingVertical: 14,
+    overflow: 'hidden',
+  
+    width: '70%',
+
   },
 
   swipeButton: {
