@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useRoute } from '@react-navigation/native';
-import { useLocalSearchParams, router } from 'expo-router';
+
+import { router } from 'expo-router';
 import {
   StyleSheet,
   View,
@@ -10,20 +10,15 @@ import {
   KeyboardAvoidingView,
   Alert
 } from 'react-native';
-// import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useCategoryContext } from '@/context/CategoryContext';
 
-
-import { API_URL } from "@/config/api"
 import ColorPalette from './colorPalette';
 import IconPicker from '@/components/ui/IconPicker';
 
 
 export default function AddCategoryModal() {
     
-    // const route = useRoute(); 
     const { 
         addCategory, 
         updateCategory, 
@@ -37,8 +32,7 @@ export default function AddCategoryModal() {
     // const editingCategory = route.params?.editingCategory || null; 
 
     const [newCategoryName, setNewCategoryName] = useState('');
-    // const [newCategoryColor, setNewCategoryColor] = useState('#3478F6');
-    // const [newCategoryIcon, setNewCategoryIcon] = useState('tag');
+  
 
     const handleAddCategory = async () => {
         try {
@@ -94,7 +88,6 @@ export default function AddCategoryModal() {
       </View>
 
 
-    {/* <Text style={styles.categoryModalTitle}>Add Category</Text> */}
     <TextInput
       style={styles.categoryModalInput}
       value={newCategoryName}
@@ -181,8 +174,4 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: "center"
       },
-    
-   
-    
-    
 })

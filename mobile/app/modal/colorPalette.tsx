@@ -41,10 +41,15 @@ export default function ColorPalette() {
             style={[
               styles.colorTag, 
               { backgroundColor: color },
-              selectedColor === color && styles.selectedColorTag
+              selectedColor === color && [
+                styles.selectedColorTag,
+                { borderColor: color } // 동적으로 선택된 색상으로 테두리 색 설정
+              ]
             ]}
             onPress={() => colorSelected(color)}
-          />
+          > {selectedColor === color && (
+            <View style={styles.innerCircle}></View> // 선택된 색상 안에 하얀 원을 추가
+          )}</TouchableOpacity>
         ))}
       </ScrollView>
       
@@ -76,12 +81,20 @@ export default function ColorPalette() {
       height: 40,
       borderRadius: 20,
       marginHorizontal: 8,
-      borderWidth: 1,
-      borderColor: '#ddd',
+      // borderWidth: 1,
+      // borderColor: '#ddd',
     },
     selectedColorTag: {
-      borderWidth: 3,
-      borderColor: '#000',
+      borderWidth: 5, // 얇은 테두리
+      // marginHorizontal: 12, // 조금 더 여유를 두기 위해 조정
+    },
+    innerCircle: {
+      width: 30,  // 작은 원 크기
+      height: 30, // 작은 원 크기
+      borderRadius: 50, // 원 모양
+      backgroundColor: 'transparent', // 가운데 비어있는 원
+      borderWidth: 3,  
+      borderColor: 'white', 
     },
     selectedColorPreview: {
       marginTop: 15,

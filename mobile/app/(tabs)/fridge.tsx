@@ -72,6 +72,8 @@ export default function FridgeScreen() {
   // const [showCategoryModal, setShowCategoryModal] = useState(false);
   
   // const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editFormData, setEditFormData] = useState<FridgeItem | null>(null);
 
   const { 
     categories, 
@@ -406,89 +408,70 @@ export default function FridgeScreen() {
 
   const renderRightActions =(item: FridgeItem) =>  (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, id: string) => {
     const translateX = dragX.interpolate({
-      inputRange: [-160, 0],
-      outputRange: [0, 160],
+      inputRange: [-240, 0],  
+      outputRange: [0, 240],  
       extrapolate: 'clamp',
     });
 
-  // 상세 버튼 
-  const detailButton = () => (
-    <RectButton
-      style={[styles.swipeButton, { backgroundColor: '#3478F6' }]}
-      onPress={() => {
-        swipeableRefs.current[item._id]?.close();
-        navigateToDetail(item);
-      }}
-    >
-      <Ionicons name="information-circle-outline" size={24} color="#fff" />
-      <Text style={styles.swipeButtonText}>상세</Text>
-    </RectButton>
-  );
+    const calendarButton = () => (
+      <RectButton
+        style={[styles.swipeButton, { backgroundColor: '#34C759' }]}  
+        onPress={() => {
+          swipeableRefs.current[item._id]?.close();
+          setModalVisible(true);
+          setEditFormData({
+            ...item,
+            expiryDate: item.expiryDate ? new Date(item.expiryDate) : new Date()
+          });
+        }}
+      >
+        <Ionicons name="calendar-outline" size={24} color="#fff" />
+      </RectButton>
+    );
 
-  // 즐겨찾기 버튼
-  const favoriteButton = () => (
-    <RectButton
-      style={[styles.swipeButton, { backgroundColor: '#FFD60A'}]}
-      onPress={() => {
-        toggleFavorite(item._id);
-      }}
-    >
-      <FontAwesome name={favorites[item._id] ? "star" : "star-o"} size={20} color="#fff" />
-    </RectButton>
-  );
+    const detailButton = () => (
+      <RectButton
+        style={[styles.swipeButton, { backgroundColor: '#3478F6' }]}
+        onPress={() => {
+          swipeableRefs.current[item._id]?.close();
+          navigateToDetail(item);
+        }}
+      >
+        <Ionicons name="information-circle-outline" size={24} color="#fff" />
+      </RectButton>
+    );
 
-  // 삭제 버튼
-  const deleteButton = () => (
-    <RectButton
-      style={[styles.swipeButton, { backgroundColor: '#FF3B30'}]}
-      onPress={() => {
-        handleDeleteItem(item._id);
-      }}
-    >
-      <Ionicons name="trash-outline" size={24} color="#fff" />
-    </RectButton>
-  );
+    const favoriteButton = () => (
+      <RectButton
+        style={[styles.swipeButton, { backgroundColor: '#FFD60A' }]}
+        onPress={() => {
+          toggleFavorite(item._id);
+        }}
+      >
+        <FontAwesome name={favorites[item._id] ? "star" : "star-o"} size={20} color="#fff" />
+      </RectButton>
+    );
 
-  return ( 
-    <View style={{ flexDirection: 'row', width: 120 }}>
+    const deleteButton = () => (
+      <RectButton
+        style={[styles.swipeButton, { backgroundColor: '#FF3B30' }]}
+        onPress={() => {
+          handleDeleteItem(item._id);
+        }}
+      >
+        <Ionicons name="trash-outline" size={24} color="#fff" />
+      </RectButton>
+    );
 
-{/* 상세 Swipe */}
-<Animated.View style={[styles.rightAction, { 
-    transform: [{ translateX: dragX.interpolate({
-      inputRange: [-120, 0],
-      outputRange: [0, 120], 
-      extrapolate: 'clamp',
-    }) }],
-  }]}>
-    {detailButton()}
-  </Animated.View>
-
-{/* 즐겨찾기 Swipe */}
-  <Animated.View style={[styles.rightAction, { 
-    transform: [{ translateX: dragX.interpolate({
-      inputRange: [-120, 0],
-      outputRange: [0, 120], 
-      extrapolate: 'clamp',
-    }) }],
-  }]}>
-    {favoriteButton()}
-  </Animated.View>
-
-{/* 삭제 Swipe */}
-  <Animated.View style={[styles.rightAction, { 
-    transform: [{ translateX: dragX.interpolate({
-      inputRange: [-120, 0],
-      outputRange: [0, 60], 
-      extrapolate: 'clamp',
-    }) }],
-  }]}>
-    {deleteButton()}
-  </Animated.View>
-  </View>
-
-
-  );
-};
+    return (
+      <Animated.View style={{ flexDirection: 'row', transform: [{ translateX }] }}>
+        {calendarButton()}
+        {detailButton()}
+        {favoriteButton()}
+        {deleteButton()}
+      </Animated.View>
+    );
+  };
 
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);

@@ -43,21 +43,47 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
  // 색상 관련 상태
  const [selectedColor, setSelectedColor] = useState<string>('#3478F6');
  const availableColors = [
-   '#3498db', // 파란색
-   '#e74c3c', // 빨간색
-   '#2ecc71', // 초록색
-   '#f39c12', // 노란색
-   '#9b59b6', // 보라색
-   '#34495e', // 회색
+    '#ffb3b3',  // 부드러운 살구색 (Soft Apricot)
+    '#ff6666',  // 부드러운 빨간색 (Soft Red)
+    '#ff0000',  // 빨간색 (Red)
+    '#e60000',  // 붉은 주홍색 (Crimson Red)
+    '#ff7f00',  // 주황색 (Orange)
+    '#ff9966',  // 부드러운 주황색 (Soft Orange)
+    '#ffd700',  // 금색 (Gold)
+    '#BEDC74',  // 연두색 (Light Green)
+    '#6EC207',  // 밝은 초록색 (Bright Green)
+    '#99BC85',  // 부드러운 초록색 (Soft Green)
+    '#6A9C89',  // 자연색 (Natural Green)
+    '#2f4f4f',  // 다크 슬레이트 그레이 (Dark Slate Gray)
+    '#66cccc',  // 부드러운 청록색 (Soft Turquoise)
+    '#66b3ff',  // 부드러운 파란색 (Soft Blue)
+    '#9966ff',  // 부드러운 남색 (Soft Indigo)
+    '#c266ff',  // 부드러운 보라색 (Soft Violet)
+    '#ff66b3',  // 부드러운 분홍색 (Soft Pink)
+    '#b3b3b3',  // 부드러운 회색 (Soft Gray)
+    '#808080',  // 중간 회색 (Medium Gray)
+    '#4f4f4f',  // 어두운 회색 (Dark Gray)    
+    '#504B38',  // 어두운 갈색 (Dark Brown)
+    '#754E1A',  // 따뜻한 갈색 (Warm Brown)
+    '#BDB395',  // 부드러운 카키 (Soft Khaki)
+    '#D5C7A3',  // 부드러운 베이지 (Soft Beige)
  ];
  
  // 아이콘 관련 상태 추가
- const [selectedIcon, setSelectedIcon] = useState<string>('tag');
+ const [selectedIcon, setSelectedIcon] = useState<string>('help');
  const availableIcons = [
-   'tag',
-   'cart',
-   'nutrition',
+   'help',
+   'star',
+   'reorder-four',
+   'fish',
    'restaurant',
+   'snow',
+   'nutrition',
+   'water',
+   'pint',
+   'egg',
+   'leaf', 
+   'cart',
    'basket',
    'wine',
    'beer',
@@ -65,9 +91,26 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    'ice-cream',
    'fast-food',
    'cafe',
-   'water',
-   'fish',
-   'egg'
+   'scale',
+'bookmark',
+"eye",
+'flag',
+'flame',
+'flash',
+'hand-left',
+'happy',
+'heart',
+'home',
+'hourglass-outline',
+'list',
+'medical',
+'moon',
+'paw',
+'sunny',
+'time',
+'warning',
+
+
  ];
 
  useEffect(() => {
@@ -77,7 +120,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       // 기본값으로 리셋
       setSelectedColor('#3478F6');
-      setSelectedIcon('tag');
+      setSelectedIcon('help');
     }
   }, [editingCategory]);
   

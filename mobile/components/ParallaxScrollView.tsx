@@ -1,11 +1,5 @@
 import type { PropsWithChildren, ReactElement } from 'react';
 import { StyleSheet, ScrollView, View } from 'react-native';
-// import Animated, {
-//   interpolate,
-//   useAnimatedRef,
-//   useAnimatedStyle,
-//   useScrollViewOffset,
-// } from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/ThemedView';
 // import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';  // 주석 처리

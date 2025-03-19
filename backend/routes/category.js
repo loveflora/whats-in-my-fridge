@@ -60,7 +60,7 @@ router.post('/', auth, async (req, res) => {
     const newCategory = new Category({
       name: name.trim(),
       color: color || '#3478F6', // Default blue color
-      icon: icon || 'tag', // Default tag icon
+      icon: icon || 'help', 
       owner: req.user.id
     });
 

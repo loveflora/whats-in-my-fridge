@@ -12,7 +12,7 @@ const categorySchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    default: 'tag' // Default icon
+    default: 'help' // Default icon
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
