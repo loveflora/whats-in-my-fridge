@@ -54,45 +54,7 @@ export default function AddCategoryModal() {
         }
       };
 
-    // const handleAddCategory = async () => {
-    //     try {
-    //       const token = await AsyncStorage.getItem('userToken');
-    //       if (!token) {
-    //         router.replace('/auth/login');
-    //         return;
-    //       }
-    
-    //       const response = await fetch(`${API_URL}/api/categories`, {
-    //         method: 'POST',
-    //         headers: {
-    //           Authorization: `Bearer ${token}`,
-    //           'Content-Type': 'application/json',
-    //         },
-    //         body: JSON.stringify({
-    //           name: newCategoryName,
-    //           color: newCategoryColor,
-    //           icon: newCategoryIcon,
-    //         }),
-    //       });
-    
-    //       if (!response.ok) {
-    //         throw new Error('Failed to add category');
-    //       }
-    
-    //       const newCategory = await response.json();
-    //       setCategories([...categories, newCategory]);
-          
-    //       // Reset form
-    //       setNewCategoryName('');
-    //       setNewCategoryColor('#3478F6');
-    //       setNewCategoryIcon('tag');
-          
-    //     //   Alert.alert('Success', 'Category added successfully');
-    //     } catch (error) {
-    //       console.error('Error adding category:', error);
-    //       Alert.alert('Error', 'Failed to add category');
-    //     }
-    //   };
+   
     
     const handleEditCategory = async () => {
         if (!editingCategory || !newCategoryName.trim()) {
@@ -119,63 +81,20 @@ export default function AddCategoryModal() {
         }
       };
 
-    // const handleEditCategory = async () => {
-    //     if (!editingCategory || !newCategoryName.trim()) {
-    //       Alert.alert('Error', 'Category name is required');
-    //       return;
-    //     }
-    
-    //     try {
-    //       const token = await AsyncStorage.getItem('userToken');
-    //       if (!token) {
-    //         router.replace('/auth/login');
-    //         return;
-    //       }
-    
-    //       const response = await fetch(`${API_URL}/api/categories/${editingCategory._id}`, {
-    //         method: 'PUT',
-    //         headers: {
-    //           Authorization: `Bearer ${token}`,
-    //           'Content-Type': 'application/json',
-    //         },
-    //         body: JSON.stringify({
-    //           name: newCategoryName,
-    //           color: newCategoryColor,
-    //           icon: newCategoryIcon,
-    //         }),
-    //       });
-    
-    //       if (!response.ok) {
-    //         throw new Error('Failed to update category');
-    //       }
-    
-    //       const updatedCategory = await response.json();
-          
-    //       // Update categories state
-    //       setCategories(
-    //         categories.map((cat) =>
-    //           cat._id === editingCategory._id ? updatedCategory : cat
-    //         )
-    //       );
-          
-    //       // Reset form
-    //       setEditingCategory(null);
-    //       setNewCategoryName('');
-    //       setNewCategoryColor('#3478F6');
-    //       setNewCategoryIcon('tag');
-    //     //   setShowCategoryModal(false);
-          
-    //       Alert.alert('Success', 'Category updated successfully');
-    //     } catch (error) {
-    //       console.error('Error updating category:', error);
-    //       Alert.alert('Error', 'Failed to update category');
-    //     }
-    //   };
-
 
     return (
     <View style={styles.categoryModal}>
-    <Text style={styles.categoryModalTitle}>Add Category</Text>
+
+<View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.title}>새 카테고리 추가</Text>
+      <View style={{ width: 40 }} />
+      </View>
+
+
+    {/* <Text style={styles.categoryModalTitle}>Add Category</Text> */}
     <TextInput
       style={styles.categoryModalInput}
       value={newCategoryName}
@@ -184,17 +103,7 @@ export default function AddCategoryModal() {
     />
     <ColorPalette />
     <IconPicker />
-    {/* <TextInput
-  style={styles.categoryModalInput}
-  value={selectedColor}  // Context에서 가져온 값 사용
-  editable={false}
-/> */}
-    {/* <TextInput
-      style={styles.categoryModalInput}
-      value={newCategoryIcon}
-      onChangeText={(text) => setNewCategoryIcon(text)}
-      placeholder="Category icon"
-    /> */}
+
     {editingCategory ? (
       <TouchableOpacity
         style={[
@@ -228,7 +137,25 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: '#fff',
-        padding: 20,
+        paddingHorizontal : 20,
+        paddingVertical: 10
+      },
+      header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 10,
+        paddingBottom: 20,
+        paddingHorizontal: 16,
+        backgroundColor: '#fff',
+      },
+      backButton: {
+        padding: 8,
+      },
+      title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#000',
       },
       categoryModalTitle: {
         fontSize: 24,
@@ -236,11 +163,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
       },
       categoryModalInput: {
-        height: 40,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        marginBottom: 16,
-        padding: 10,
+        height: 50,
+        backgroundColor: '#f5f5f5',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 6,
+        borderRadius: 10,
+        paddingHorizontal: 12,
       },
       categoryModalButton: {
         backgroundColor: '#3478F6',

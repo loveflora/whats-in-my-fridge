@@ -708,6 +708,11 @@ export default function MenuScreen() {
 
   return (
     <View style={[styles.container, isDarkMode && styles.darkContainer]}>
+             {/* 메뉴 추가 플로팅 버튼 */}
+             <TouchableOpacity style={styles.addButton} onPress={handleAddMenu}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={styles.scrollView}
         refreshControl={
@@ -736,10 +741,6 @@ export default function MenuScreen() {
           />
         </View>
       
-        {/* 메뉴 추가 플로팅 버튼 */}
-      <TouchableOpacity style={styles.addButton} onPress={handleAddMenu}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
 
 
 
@@ -804,6 +805,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+     position: 'relative'
   },
   darkContainer: {
     backgroundColor: '#121212',
@@ -916,7 +918,7 @@ const styles = StyleSheet.create({
   addButton: {
     position: 'absolute',
     right: 24,
-    bottom: 24,
+    bottom: 100,
     width: 56,
     height: 56,
     borderRadius: 28,

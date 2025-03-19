@@ -171,32 +171,7 @@ export default function FridgeScreen() {
     }
   };
 
-  // const fetchCategories = async () => {
-  //   try {
-  //     const token = await AsyncStorage.getItem('userToken');
-  //     if (!token) {
-  //       router.replace('/auth/login');
-  //       return;
-  //     }
 
-  //     const response = await fetch(`${API_URL}/api/categories`, {
-  //       method: 'GET',
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error('Failed to fetch categories');
-  //     }
-
-  //     const data = await response.json();
-  //     setCategories(data);
-  //   } catch (error) {
-  //     console.error('Error fetching categories:', error);
-  //     Alert.alert('Error', 'Failed to load categories');
-  //   }
-  // };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -814,33 +789,7 @@ export default function FridgeScreen() {
   //   );
   // };
 
-  // const handleDeleteCategory = async (categoryId: string) => {
-  //   try {
-  //     const token = await AsyncStorage.getItem('userToken');
-  //     if (!token) {
-  //       router.replace('/auth/login');
-  //       return;
-  //     }
 
-  //     const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
-  //       method: 'DELETE',
-  //       headers: {
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error('Failed to delete category');
-  //     }
-
-  //     // Update categories state
-  //     setCategories(categories.filter((cat) => cat._id !== categoryId));
-  //     Alert.alert('Success', 'Category deleted successfully');
-  //   } catch (error) {
-  //     console.error('Error deleting category:', error);
-  //     Alert.alert('Error', 'Failed to delete category');
-  //   }
-  // };
 
   const startEditCategory = (category: Category) => {
     setEditingCategory(category);
@@ -850,10 +799,10 @@ export default function FridgeScreen() {
     setShowCategoryModal(true);
   };
 
+    // 카테고리 추가하기 화면으로 이동
   const navigateAddCategory = () => {
     router.push({
       pathname: '/modal/addCategory',
-    //   params: { editingCategory: editingCategory ? JSON.stringify(editingCategory) : null }
     });
   };
 
