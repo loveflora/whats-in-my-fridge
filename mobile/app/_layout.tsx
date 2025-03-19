@@ -48,7 +48,7 @@ function RootLayoutNav() {
   const protectedPaths = [
     "/fridge", 
     "/menu", 
-    "/menu-details", 
+    "/MenuDetails", 
     "/shopping",
     "/settings"
   ];
@@ -126,8 +126,9 @@ function RootLayoutNav() {
             animation: "slide_from_bottom",
           }}
         />
-        <Stack.Screen name="menu-details" options={{ headerShown: false }} />
-        <Stack.Screen name="item-details" options={{ headerShown: false }} />
+        <Stack.Screen name="MenuDetails" options={{ headerShown: false }} />
+        <Stack.Screen name="ItemDetails" options={{ headerShown: false }} />
+        <Stack.Screen name="CategoryDetails" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
         <Stack.Screen name="auth/login" options={{ headerShown: false }} />
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />

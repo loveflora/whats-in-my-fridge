@@ -28,30 +28,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Search from "@/components/fridge/Search"
 import { useCategoryContext } from '@/context/CategoryContext';
-
+import { FridgeItem, Category } from '@/types/Fridge';
 
 // config/api.js에서 사용하는 URL을 여기서도 동일하게 사용하기 위해 API_BASE_URL 가져오기
-import { API_ENDPOINTS } from '../../config/api';
 import { API_URL } from '../../config/api';
 
-interface Category {
-  _id: string;
-  name: string;
-  color: string;
-  icon: string;
-  owner: string;
-}
 
-interface FridgeItem {
-  _id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  expiryDate: string;
-  category: Category | string; // Updated to support both string and Category object
-  favorite: boolean;
-  completed: boolean;
-}
 
 interface ApiError {
   message: string;
@@ -403,7 +385,12 @@ export default function FridgeScreen() {
 
      // 아이템 상세 페이지로 이동
      const navigateToDetail = (item: FridgeItem) => {
-      router.push(`/item-details?id=${item._id}`);
+      // screens 폴더의 ItemDetails로 이동
+      // router.push()는 파일 기반 라우팅 경로로 이동하는데 사용
+      router.push({
+        pathname: "/ItemDetails",
+        params: { id: item._id }
+      });
     };
 
   const renderRightActions =(item: FridgeItem) =>  (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, id: string) => {
@@ -793,18 +780,26 @@ export default function FridgeScreen() {
 
 
 
-  const startEditCategory = (category: Category) => {
-    setEditingCategory(category);
-    setNewCategoryName(category.name);
-    setNewCategoryColor(category.color);
-    setNewCategoryIcon(category.icon);
-    setShowCategoryModal(true);
-  };
+  // const startEditCategory = (category: Category) => {
+  //   setEditingCategory(category);
+  //   setNewCategoryName(category.name);
+  //   setNewCategoryColor(category.color);
+  //   setNewCategoryIcon(category.icon);
+  //   setShowCategoryModal(true);
+  // };
 
     // 카테고리 추가하기 화면으로 이동
-  const navigateAddCategory = () => {
+  const navigateToAddCategory = () => {
     router.push({
       pathname: '/modal/addCategory',
+    });
+  };
+
+    // 카테고리 상세 화면으로 이동
+  const navigateToCategoryDetail = (category: Category) => {
+    router.push({
+      pathname: "/CategoryDetails",
+      params: { id: category._id }
     });
   };
 
@@ -825,15 +820,20 @@ export default function FridgeScreen() {
         { backgroundColor: item.color + '20' }, // 20% opacity version of the category color
         isDarkMode && styles.darkCategoryItem,
       ]}
-      onPress={() => startEditCategory(item)}
+      onPress={() => navigateToCategoryDetail(item)}
     >
       <View style={styles.categoryIconContainer}>
         <Ionicons name={item.icon as any} size={24} color={item.color} />
       </View>
-      <Text style={[styles.categoryName, isDarkMode && styles.darkText]}>
+      <Text style={[styles.categoryName, isDarkMode && styles.darkText]}
+        numberOfLines={2} // 두 줄로 제한
+        // ellipsizeMode="tail" // 끝에 "..." 추가
+      >
         {item.name}
       </Text>
-      <TouchableOpacity
+      <Text style={[styles.categoryNumber, isDarkMode && styles.darkText]}>10</Text>
+      {/* 삭제 버튼 */}
+      {/* <TouchableOpacity
         style={styles.categoryDeleteButton}
         onPress={() => {
           Alert.alert(
@@ -847,7 +847,7 @@ export default function FridgeScreen() {
         }}
       >
         <Ionicons name="trash-outline" size={20} color={isDarkMode ? '#fff' : '#FF3B30'} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </TouchableOpacity>
   );
 
@@ -908,7 +908,7 @@ export default function FridgeScreen() {
 {/* 새 카테고리 추가 버튼 */}
       <TouchableOpacity
         style={styles.addCategoryButton}
-        onPress={navigateAddCategory}
+        onPress={navigateToAddCategory}
         >
         <Ionicons name="add-circle" size={24} color="#888" />
       <Text  style={styles.addCategoryText}>New Category</Text>
@@ -1123,12 +1123,13 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     marginBottom: 12,
     borderRadius: 10,
-    width: 180
+    width: 180,
+    // backgroundColor: "red",
   },
   darkCategoryItem: {
     backgroundColor: '#2c2c2c',
@@ -1139,12 +1140,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    // marginRight: 16,
   },
   categoryName: {
     fontSize: 16,
     // fontWeight: 'bold',
     color: '#333',
+    overflow: 'hidden', // 오버플로우 숨기기
+    textOverflow: 'ellipsis', // 텍스트 끝에 "..." 표시
+    width: 100,
+    numberOfLines: 2, // 두 줄로 제한
+  },
+ categoryNumber : {
+  fontSize: 20,
+  fontWeight: "bold",
   },
   categoryDeleteButton: {
     padding: 8,

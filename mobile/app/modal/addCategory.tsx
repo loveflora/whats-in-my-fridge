@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   StyleSheet,
   View,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Text,
   KeyboardAvoidingView,
-  Alert
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCategoryContext } from '@/context/CategoryContext';
@@ -25,14 +25,37 @@ export default function AddCategoryModal() {
         editingCategory, 
         setEditingCategory,
         selectedColor,
-        selectedIcon
+        selectedIcon,
+        setSelectedColor,
+        setSelectedIcon
       } = useCategoryContext();
       
-    // const { editingCategory } = useLocalSearchParams();
-    // const editingCategory = route.params?.editingCategory || null; 
+    const params = useLocalSearchParams();
+    const isEditing = params.isEdited === "true"; 
+    const categoryId = params.categoryId as string;
+    const categoryName = params.categoryName as string;
+    const categoryColor = params.categoryColor as string;
+    const categoryIcon = params.categoryIcon as string;
 
-    const [newCategoryName, setNewCategoryName] = useState('');
-  
+    console.log("isEditing***********", isEditing)
+
+    const [newCategoryName, setNewCategoryName] = useState(isEditing ? categoryName : '');
+
+    useEffect(() => {
+        if (isEditing) {
+            setNewCategoryName(categoryName);
+            setSelectedColor(categoryColor);
+            setSelectedIcon(categoryIcon);
+        }
+    }, [isEditing, categoryName, categoryColor, categoryIcon]);
+
+    const validateCategoryInput = () => {
+        if (!categoryId || !newCategoryName.trim()) {
+          Alert.alert('Error', 'Category name is required');
+          return false;
+        }
+        return true;
+    };
 
     const handleAddCategory = async () => {
         try {
@@ -51,26 +74,31 @@ export default function AddCategoryModal() {
    
     
     const handleEditCategory = async () => {
-        if (!editingCategory || !newCategoryName.trim()) {
-          Alert.alert('Error', 'Category name is required');
+        // ID 확인 (편집 모드에서만 필요)
+        if (!categoryId) {
+          Alert.alert('오류', '카테고리 정보를 찾을 수 없습니다.');
           return;
         }
-    
+        
+        // 유효성 검사 실행
+        if (!validateCategoryInput()) {
+          return;
+        }
+        
         try {
           await updateCategory(
-            editingCategory._id,
+            categoryId,
             newCategoryName,
             selectedColor,
             selectedIcon
           );
-          
-          // 성공 후 처리
-          setEditingCategory(null);
-          setNewCategoryName('');
-          
-        //   Alert.alert('Success', 'Category updated successfully');
           router.back();
+        //   // 성공 후 처리
+        //   Alert.alert('성공', '카테고리가 성공적으로 수정되었습니다.', [
+        //     { text: '확인', onPress: () => router.back() }
+        //   ]);
         } catch (error) {
+          console.error('Error updating category:', error);
           // 에러는 context에서 처리됨
         }
       };
@@ -83,7 +111,7 @@ export default function AddCategoryModal() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>새 카테고리 추가</Text>
+        <Text style={styles.title}>{isEditing? "카테고리 수정" : "새 카테고리 추가"}</Text>
       <View style={{ width: 40 }} />
       </View>
 
@@ -97,7 +125,7 @@ export default function AddCategoryModal() {
     <ColorPalette />
     <IconPicker />
 
-    {editingCategory ? (
+    {isEditing ? (
       <TouchableOpacity
         style={[
           styles.categoryModalButton,

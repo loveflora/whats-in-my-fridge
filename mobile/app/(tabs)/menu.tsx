@@ -219,7 +219,10 @@ export default function MenuScreen() {
 //   // 메뉴 상세 페이지로 이동
 //   const handleMenuPress = (menu: MenuItem) => {
 //     // 상세 페이지로 메뉴 ID를 전달하여 이동
-//     router.push(`/menu-details/${menu._id}`);
+//     router.push({
+//       pathname: "/menuDetails",
+//       params: { id: menu._id }
+//     });
 //   };
 
 //   if (loading) {
@@ -280,12 +283,7 @@ export default function MenuScreen() {
 //                 <View style={styles.menuContent}>
 //                   <View style={styles.menuHeader}>
 //                     <Text style={[styles.menuTitle, isDarkMode && styles.darkText]}>{menu.name}</Text>
-//                     <Text style={[styles.mealType, {
-//                       backgroundColor: getColorForCategory(menu.category),
-//                       color: '#fff'
-//                     }]}>
-//                       {menu.mealType || menu.category}
-//                     </Text>
+//                     <Text style={[styles.menuCategory, isDarkMode && styles.darkSubText]}>{menu.category}</Text>
 //                   </View>
                   
 //                   {menu.description && (
@@ -694,7 +692,7 @@ export default function MenuScreen() {
   // 메뉴 상세 페이지로 이동
   const handleMenuPress = (menu: MenuItem) => {
     // 상세 페이지로 메뉴 ID를 전달하여 이동
-    router.push(`/menu-details?id=${menu._id}`);
+  router.push(`/MenuDetails?id=${menu._id}`)
   };
 
 
