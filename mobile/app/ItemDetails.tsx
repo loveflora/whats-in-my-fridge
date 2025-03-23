@@ -277,13 +277,13 @@ export default function ItemDetailsScreen() {
   };
 
   // 카테고리 변경 저장
-  const saveCategory = async (categoryId: string | undefined) => {
+  const saveCategory = async (category: string | undefined) => {
     if (!item) return;
     
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) throw new Error('인증 토큰이 없습니다.');
-      // 
+      
       const response = await fetch(`${API_URL}/api/fridge/items/${item._id}`, {
         method: 'PUT',
         headers: {
@@ -292,18 +292,18 @@ export default function ItemDetailsScreen() {
         },
         body: JSON.stringify({
           ...item,
-          category: categoryId
+          category: category  // 백엔드에서 카테고리 이름으로 처리
         })
       });
-      
+
       if (!response.ok) throw new Error('카테고리 업데이트에 실패했습니다.');
       
-      // 성공적으로 업데이트되면 아이템 정보 다시 불러오기
-      setItem({...item, category: categoryId});
+      // 서버에서 응답받은 데이터로 업데이트
+      const updatedItem = await response.json();
+      console.log("updateItem::::::::::::", updatedItem)
+      setItem(updatedItem);
       setEditingField(null);
       setShowCategoryPicker(false);
-      // 성공 메시지
-      // Alert.alert('성공', '카테고리가 업데이트되었습니다.');
     } catch (error) {
       console.error('카테고리 업데이트 오류:', error);
       Alert.alert('오류', '카테고리 업데이트에 실패했습니다.');
@@ -372,6 +372,8 @@ export default function ItemDetailsScreen() {
     );
   }
 
+  console.log("item*************", item)
+
   const daysUntilExpiry = getDaysUntilExpiry(item.expiryDate);
   const expiryColor = getExpiryColor(daysUntilExpiry);
 
@@ -438,7 +440,8 @@ export default function ItemDetailsScreen() {
                   key={category}
                   style={[
                     styles.tagItem,
-                    item?.category === category && styles.selectedTagItem
+                    // 이제 item.category가 카테고리 이름이므로 직접 비교 가능
+                    item?.category?.toLowerCase() === category.toLowerCase() && styles.selectedTagItem
                   ]}
                   onPress={() => saveCategory(category)}
                 >
@@ -457,9 +460,10 @@ export default function ItemDetailsScreen() {
                     key={category._id}
                     style={[
                       styles.categoryItem,
-                      item?.category === category._id && styles.selectedCategoryItem
+                      // 이제 item.category가 카테고리 이름이므로 이름으로 비교
+                      item?.category?.toLowerCase() === category.name.toLowerCase() && styles.selectedCategoryItem
                     ]}
-                    onPress={() => saveCategory(category._id)}
+                    onPress={() => saveCategory(category.name)}
                   >
                     <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>
                       <Ionicons name={category.icon as any} size={20} color="#fff" />
@@ -748,7 +752,7 @@ const styles = StyleSheet.create({
   tagContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 20,
+    marginVertical: 10,
   },
   tagItem: {
     backgroundColor: '#ddd',
@@ -758,7 +762,7 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   selectedTagItem: {
-    backgroundColor: '#4CAF50', // Or any color to show selection
+    backgroundColor: 'red', // Or any color to show selection
   },
   tagText: {
     color: '#000',

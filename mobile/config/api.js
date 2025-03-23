@@ -1,5 +1,5 @@
 // const API_BASE_URL = 'http://10.0.2.2:5001'; // Use 10.0.2.2 for Android emulator or your computer's local IP for real devices
-export const API_URL = 'http://192.168.20.7:5001'; // Use 10.0.2.2 for Android emulator or your computer's local IP for real devices
+export const API_URL = 'http://192.168.20.8:5001'; // Use 10.0.2.2 for Android emulator or your computer's local IP for real devices
 
 // API URL을 여러 옵션 중에서 작동하는 것을 선택하도록 함
 // 에뮬레이터와 실제 기기에서 각각 다른 URL이 필요할 수 있음
